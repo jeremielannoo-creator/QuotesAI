@@ -10,7 +10,7 @@ from config import (
     TIKTOK_ACCESS_TOKEN, TIKTOK_OPEN_ID,
 )
 
-_IG_BASE   = "https://graph.facebook.com/v19.0"
+_IG_BASE   = "https://graph.facebook.com/v21.0"
 _TIKTOK_BASE = "https://open.tiktokapis.com/v2"
 
 
@@ -42,15 +42,18 @@ def publish_instagram(video_url: str, caption: str, hashtags: list[str]) -> str:
     resp = requests.post(
         f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media",
         data={
-            "media_type":   "REELS",
-            "video_url":    video_url,
-            "caption":      full_caption,
+            "media_type":    "REELS",
+            "video_url":     video_url,
+            "caption":       full_caption,
             "share_to_feed": "true",
-            "access_token": INSTAGRAM_ACCESS_TOKEN,
+            "access_token":  INSTAGRAM_ACCESS_TOKEN,
         },
         timeout=30,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        raise RuntimeError(
+            f"Instagram {resp.status_code} — {resp.json()}"
+        )
     container_id = resp.json()["id"]
     print(f"  [instagram] Conteneur créé : {container_id}")
 
@@ -152,7 +155,10 @@ def publish_tiktok(video_url: str, caption: str, hashtags: list[str]) -> str:
         headers=headers,
         timeout=30,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        raise RuntimeError(
+            f"TikTok {resp.status_code} — {resp.json()}"
+        )
     result     = resp.json()
     publish_id = result["data"]["publish_id"]
     print(f"  [tiktok] Publication initiée : {publish_id}")

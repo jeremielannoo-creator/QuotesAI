@@ -58,6 +58,7 @@ jobs:
           INSTAGRAM_USER_ID:       ${{ secrets.INSTAGRAM_USER_ID }}
           TIKTOK_ACCESS_TOKEN:     ${{ secrets.TIKTOK_ACCESS_TOKEN }}
           TIKTOK_OPEN_ID:          ${{ secrets.TIKTOK_OPEN_ID }}
+          TIKTOK_REFRESH_TOKEN:    ${{ secrets.TIKTOK_REFRESH_TOKEN }}
         run: python pipeline.py --platform both
 
       # ── 8. Sauvegarder la DB (citation marquée comme publiée) ─────────────
