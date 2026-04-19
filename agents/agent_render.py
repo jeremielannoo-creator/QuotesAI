@@ -7,6 +7,7 @@ Agent 4 — Montage vidéo avec FFmpeg
 """
 import os
 import time
+import random
 import subprocess
 import ffmpeg
 from utils.text_overlay import create_overlay
@@ -128,11 +129,15 @@ def _run_ffmpeg(
 
     # ── Cas 1 : avec musique ───────────────────────────────────────────────────
     if music_path and os.path.exists(music_path):
+        # Choisir un point de départ aléatoire dans la piste
+        start_time = _random_music_start(music_path, dur)
+        print(f"  [agent_render] Musique : départ à {start_time:.1f}s")
+
         a_music = (
-            ffmpeg.input(music_path).audio
+            ffmpeg.input(music_path, ss=start_time).audio
             .filter("volume", 0.35)
-            .filter("afade", t="in",  st=0,       d=2)
-            .filter("afade", t="out", st=dur - 3,  d=3)
+            .filter("afade", t="in",  st=0,      d=2)
+            .filter("afade", t="out", st=dur - 3, d=3)
             .filter("atrim", duration=dur)
             .filter("asetpts", "PTS-STARTPTS")
         )
@@ -173,6 +178,24 @@ def _run_ffmpeg(
         )
 
     ffmpeg.run(out, overwrite_output=True, quiet=False)
+
+
+def _random_music_start(music_path: str, video_dur: float) -> float:
+    """
+    Retourne un point de départ aléatoire dans la piste musicale,
+    en s'assurant qu'il reste assez de contenu pour couvrir la vidéo.
+    """
+    try:
+        probe      = ffmpeg.probe(music_path)
+        audio_info = next(
+            s for s in probe["streams"] if s["codec_type"] == "audio"
+        )
+        music_dur  = float(audio_info.get("duration", 0))
+        margin     = video_dur + 3   # garde 3s de marge pour le fade out
+        max_start  = max(0.0, music_dur - margin)
+        return round(random.uniform(0, max_start), 1)
+    except Exception:
+        return 0.0
 
 
 def check_ffmpeg() -> bool:

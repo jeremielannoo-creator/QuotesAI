@@ -10,6 +10,7 @@ load_dotenv()
 # ── APIs ───────────────────────────────────────────────
 ANTHROPIC_API_KEY       = os.getenv("ANTHROPIC_API_KEY", "")
 PEXELS_API_KEY          = os.getenv("PEXELS_API_KEY", "")
+PIXABAY_API_KEY         = os.getenv("PIXABAY_API_KEY", "")
 
 CLOUDINARY_CLOUD_NAME   = os.getenv("CLOUDINARY_CLOUD_NAME", "")
 CLOUDINARY_API_KEY      = os.getenv("CLOUDINARY_API_KEY", "")
