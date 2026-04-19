@@ -1,0 +1,70 @@
+name: QuotesAI — Publication quotidienne
+
+on:
+  schedule:
+    # 07h00 UTC = 09h00 Paris (été) / 08h00 (hiver)
+    # Modifier l'heure ici : https://crontab.guru
+    - cron: '0 7 * * *'
+  workflow_dispatch:   # Déclenchement manuel depuis l'onglet Actions
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Nécessaire pour committer la DB mise à jour
+
+    steps:
+      # ── 1. Récupérer le code ───────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      # ── 3. FFmpeg ─────────────────────────────────────────────────────────
+      - name: FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+
+      # ── 4. Dépendances Python ─────────────────────────────────────────────
+      - name: Dépendances
+        run: pip install -r requirements.txt
+
+      # ── 5. Polices (téléchargées si absentes du repo) ─────────────────────
+      - name: Polices
+        run: python setup_fonts.py
+
+      # ── 6. Base de données (import initial si absente) ────────────────────
+      - name: Initialiser la DB si absente
+        run: |
+          if [ ! -f db/quotes.db ]; then
+            echo "DB absente — import depuis quotes.csv"
+            python import_quotes.py
+          fi
+
+      # ── 7. Pipeline principal ─────────────────────────────────────────────
+      - name: Lancer le pipeline
+        env:
+          PEXELS_API_KEY:          ${{ secrets.PEXELS_API_KEY }}
+          CLOUDINARY_CLOUD_NAME:   ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY:      ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:   ${{ secrets.CLOUDINARY_API_SECRET }}
+          INSTAGRAM_ACCESS_TOKEN:  ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID:       ${{ secrets.INSTAGRAM_USER_ID }}
+          TIKTOK_ACCESS_TOKEN:     ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_OPEN_ID:          ${{ secrets.TIKTOK_OPEN_ID }}
+        run: python pipeline.py --platform both
+
+      # ── 8. Sauvegarder la DB (citation marquée comme publiée) ─────────────
+      - name: Commit DB mise à jour
+        run: |
+          git config user.email "quotesai-bot@github.com"
+          git config user.name  "QuotesAI Bot"
+          git add db/quotes.db
+          git diff --staged --quiet || git commit -m "chore: citation publiée [skip ci]"
+          git push

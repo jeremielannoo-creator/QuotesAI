@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Citations avec Vidéos</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --dark-color: #1f2937;
+            --light-color: #f9fafb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-color: #f3f4f6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: var(--dark-color);
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+        
+        .app-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .app-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        button.secondary {
+            background-color: var(--dark-color);
+        }
+        
+        button.secondary:hover {
+            background-color: #374151;
+        }
+        
+        .quote-container {
+            background-color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .quote-text {
+            font-size: 1.2rem;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+        
+        .quote-author {
+            font-weight: 600;
+            text-align: right;
+        }
+        
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .tag {
+            background-color: #e0e7ff;
+            color: var(--primary-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .image-preview {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .image-preview img {
+            width: 100%;
+            display: block;
+        }
+        
+        .video-preview {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .video-preview video {
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .warning {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border-left: 4px solid var(--error-color);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .social-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Générateur de Citations avec Vidéos</h1>
+            <p class="subtitle">Créez et publiez des citations inspirantes avec des vidéos d'illustration</p>
+        </header>
+        
+        <div class="app-grid">
+            <div class="left-panel">
+                <div class="panel">
+                    <h2>Configuration des APIs</h2>
+                    
+                    <div class="form-group">
+                        <label for="pexels-api">Clé API Pexels</label>
+                        <input type="text" id="pexels-api" placeholder="Entrez votre clé API Pexels">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pixabay-api">Clé API Pixabay</label>
+                        <input type="text" id="pixabay-api" placeholder="Entrez votre clé API Pixabay">
+                    </div>
+                    
+                    <div class="form-group">
+                        <button id="save-api-keys">Enregistrer les clés API</button>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h2>Générer une citation</h2>
+                    
+                    <div id="api-saved-message" class="message success hidden">
+                        Clés API enregistrées avec succès!
+                    </div>
+                    
+                    <div class="form-group">
+                        <button id="generate-quote">Nouvelle citation</button>
+                    </div>
+                    
+                    <div id="quote-result" class="hidden">
+                        <div class="quote-container">
+                            <p class="quote-text" id="quote-text"></p>
+                            <p class="quote-author" id="quote-author"></p>
+                            <div class="tags" id="quote-tags"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button id="find-video">Trouver une vidéo d'illustration</button>
+                        </div>
+                    </div>
+                    
+                    <div id="loading" class="hidden">
+                        <div class="spinner"></div>
+                        <p style="text-align: center; margin-top: 10px;">Recherche en cours...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel">
+                    <h2>Prévisualisation</h2>
+                    
+                    <div id="preview-content" class="preview-container hidden">
+                        <div class="image-preview">
+                            <img id="quote-image" src="" alt="Citation visuelle">
+                        </div>
+                        
+                        <div class="video-preview hidden" id="video-preview">
+                            <video id="video-element" controls>
+                                Votre navigateur ne supporte pas la lecture de vidéos.
+                            </video>
+                        </div>
+                        
+                        <div class="social-buttons">
+                            <button class="secondary" id="instagram-btn">Préparer pour Instagram</button>
+                            <button class="secondary" id="tiktok-btn">Préparer pour TikTok</button>
+                        </div>
+                    </div>
+                    
+                    <div id="no-preview" class="message warning">
+                        Génèrez une citation et une vidéo pour voir la prévisualisation.
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h2>Instructions</h2>
+                    <ol style="padding-left: 20px; margin-top: 15px;">
+                        <li>Entrez vos clés API Pexels et/ou Pixabay</li>
+                        <li>Cliquez sur "Enregistrer les clés API"</li>
+                        <li>Générez une citation aléatoire</li>
+                        <li>Trouvez une vidéo d'illustration correspondante</li>
+                        <li>Préparez le contenu pour Instagram ou TikTok</li>
+                    </ol>
+                    
+                    <div class="message warning" style="margin-top: 20px;">
+                        <strong>Note:</strong> Pour obtenir des clés API:
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            <li>Pexels: <a href="https://www.pexels.com/api/" target="_blank">https://www.pexels.com/api/</a></li>
+                            <li>Pixabay: <a href="https://pixabay.com/api/docs/" target="_blank">https://pixabay.com/api/docs/</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Références aux éléments DOM
+            const pexelsApiInput = document.getElementById('pexels-api');
+            const pixabayApiInput = document.getElementById('pixabay-api');
+            const saveApiButton = document.getElementById('save-api-keys');
+            const generateQuoteButton = document.getElementById('generate-quote');
+            const findVideoButton = document.getElementById('find-video');
+            const quoteResult = document.getElementById('quote-result');
+            const quoteText = document.getElementById('quote-text');
+            const quoteAuthor = document.getElementById('quote-author');
+            const quoteTags = document.getElementById('quote-tags');
+            const loading = document.getElementById('loading');
+            const previewContent = document.getElementById('preview-content');
+            const noPreview = document.getElementById('no-preview');
+            const quoteImage = document.getElementById('quote-image');
+            const videoPreview = document.getElementById('video-preview');
+            const videoElement = document.getElementById('video-element');
+            const instagramBtn = document.getElementById('instagram-btn');
+            const tiktokBtn = document.getElementById('tiktok-btn');
+            const apiSavedMessage = document.getElementById('api-saved-message');
+            
+            // Variables pour stocker les données
+            let currentQuote = null;
+            let currentVideo = null;
+            let apiKeys = {
+                pexels: '',
+                pixabay: ''
+            };
+            
+            // Charger les clés API sauvegardées
+            const savedApiKeys = localStorage.getItem('citationAppApiKeys');
+            if (savedApiKeys) {
+                try {
+                    apiKeys = JSON.parse(savedApiKeys);
+                    pexelsApiInput.value = apiKeys.pexels;
+                    pixabayApiInput.value = apiKeys.pixabay;
+                } catch (e) {
+                    console.error('Erreur lors du chargement des clés API:', e);
+                }
+            }
+            
+            // Enregistrer les clés API
+            saveApiButton.addEventListener('click', function() {
+                apiKeys.pexels = pexelsApiInput.value.trim();
+                apiKeys.pixabay = pixabayApiInput.value.trim();
+                
+                localStorage.setItem('citationAppApiKeys', JSON.stringify(apiKeys));
+                
+                // Afficher le message de confirmation
+                apiSavedMessage.classList.remove('hidden');
+                setTimeout(() => {
+                    apiSavedMessage.classList.add('hidden');
+                }, 3000);
+            });
+            
+            // Générer une citation aléatoire
+            generateQuoteButton.addEventListener('click', async function() {
+                try {
+                    loading.classList.remove('hidden');
+                    
+                    const response = await fetch('https://api.quotable.io/random');
+                    if (!response.ok) {
+                        throw new Error('Erreur lors de la récupération de la citation');
+                    }
+                    
+                    const quoteData = await response.json();
+                    currentQuote = quoteData;
+                    
+                    // Afficher la citation
+                    quoteText.textContent = `"${quoteData.content}"`;
+                    quoteAuthor.textContent = `- ${quoteData.author}`;
+                    
+                    // Afficher les tags
+                    quoteTags.innerHTML = '';
+                    if (quoteData.tags && quoteData.tags.length > 0) {
+                        quoteData.tags.forEach(tag => {
+                            const tagElement = document.createElement('span');
+                            tagElement.className = 'tag';
+                            tagElement.textContent = tag;
+                            quoteTags.appendChild(tagElement);
+                        });
+                    }
+                    
+                    // Générer une image de prévisualisation
+                    generateQuoteImage(quoteData.content, quoteData.author);
+                    
+                    quoteResult.classList.remove('hidden');
+                    loading.classList.add('hidden');
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    loading.classList.add('hidden');
+                    
+                    // Utiliser une citation par défaut en cas d'erreur
+                    currentQuote = {
+                        content: "La vie n'est pas un problème à résoudre mais une réalité à expérimenter.",
+                        author: "Søren Kierkegaard",
+                        tags: ["philosophie", "vie"]
+                    };
+                    
+                    quoteText.textContent = `"${currentQuote.content}"`;
+                    quoteAuthor.textContent = `- ${currentQuote.author}`;
+                    
+                    // Afficher les tags
+                    quoteTags.innerHTML = '';
+                    currentQuote.tags.forEach(tag => {
+                        const tagElement = document.createElement('span');
+                        tagElement.className = 'tag';
+                        tagElement.textContent = tag;
+                        quoteTags.appendChild(tagElement);
+                    });
+                    
+                    // Générer une image de prévisualisation
+                    generateQuoteImage(currentQuote.content, currentQuote.author);
+                    
+                    quoteResult.classList.remove('hidden');
+                }
+            });
+            
+            // Trouver une vidéo d'illustration
+            findVideoButton.addEventListener('click', async function() {
+                if (!currentQuote) {
+                    alert('Veuillez d\'abord générer une citation');
+                    return;
+                }
+                
+                // Vérifier qu'au moins une clé API est disponible
+                if (!apiKeys.pexels && !apiKeys.pixabay) {
+                    alert('Veuillez entrer au moins une clé API (Pexels ou Pixabay)');
+                    return;
+                }
+                
+                try {
+                    loading.classList.remove('hidden');
+                    findVideoButton.disabled = true;
+                    
+                    // Déterminer la requête de recherche
+                    const searchQuery = currentQuote.tags && currentQuote.tags.length > 0 
+                        ? currentQuote.tags[0] 
+                        : currentQuote.content.split(' ').slice(0, 3).join(' ');
+                    
+                    let videoFound = false;
+                    
+                    // Essayer Pexels en premier si une clé est disponible
+                    if (apiKeys.pexels) {
+                        try {
+                            const pexelsResponse = await fetch(
+                                `https://api.pexels.com/videos/search?query=${encodeURIComponent(searchQuery)}&per_page=10`,
+                                {
+                                    headers: {
+                                        'Authorization': apiKeys.pexels
+                                    }
+                                }
+                            );
+                            
+                            if (pexelsResponse.ok) {
+                                const pexelsData = await pexelsResponse.json();
+                                if (pexelsData.videos && pexelsData.videos.length > 0) {
+                                    // Choisir une vidéo aléatoire
+                                    const randomVideo = pexelsData.videos[Math.floor(Math.random() * pexelsData.videos.length)];
+                                    // Prendre la vidéo de la plus haute qualité disponible
+                                    const videoFile = randomVideo.video_files.sort((a, b) => b.width - a.width)[0];
+                                    currentVideo = videoFile.link;
+                                    videoFound = true;
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Erreur avec l\'API Pexels:', e);
+                        }
+                    }
+                    
+                    // Si Pexels n'a pas fonctionné, essayer Pixabay
+                    if (!videoFound && apiKeys.pixabay) {
+                        try {
+                            const pixabayResponse = await fetch(
+                                `https://pixabay.com/api/videos/?key=${apiKeys.pixabay}&q=${encodeURIComponent(searchQuery)}&per_page=10`
+                            );
+                            
+                            if (pixabayResponse.ok) {
+                                const pixabayData = await pixabayResponse.json();
+                                if (pixabayData.hits && pixabayData.hits.length > 0) {
+                                    // Choisir une vidéo aléatoire
+                                    const randomVideo = pixabayData.hits[Math.floor(Math.random() * pixabayData.hits.length)];
+                                    currentVideo = randomVideo.videos.large.url;
+                                    videoFound = true;
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Erreur avec l\'API Pixabay:', e);
+                        }
+                    }
+                    
+                    if (videoFound) {
+                        // Afficher la vidéo
+                        videoElement.src = currentVideo;
+                        videoPreview.classList.remove('hidden');
+                        previewContent.classList.remove('hidden');
+                        noPreview.classList.add('hidden');
+                    } else {
+                        alert('Aucune vidéo trouvée. Essayez avec une autre citation ou vérifiez vos clés API.');
+                    }
+                    
+                    loading.classList.add('hidden');
+                    findVideoButton.disabled = false;
+                } catch (error) {
+                    console.error('Erreur lors de la recherche vidéo:', error);
+                    loading.classList.add('hidden');
+                    findVideoButton.disabled = false;
+                    alert('Erreur lors de la recherche de vidéo. Veuillez réessayer.');
+                }
+            });
+            
+            // Générer une image avec la citation (simulation)
+            function generateQuoteImage(text, author) {
+                // En réalité, vous utiliseriez Canvas ou une API pour générer une image
+                // Ici, nous utilisons une image placeholder avec la citation en alt
+                quoteImage.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500"><rect width="100%" height="100%" fill="%234f46e5"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="24" fill="white">' + encodeURIComponent('"' + text + '" - ' + author) + '</text></svg>';
+                
+                previewContent.classList.remove('hidden');
+                noPreview.classList.add('hidden');
+            }
+            
+            // Préparer pour Instagram
+            instagramBtn.addEventListener('click', function() {
+                if (!currentQuote || !currentVideo) {
+                    alert('Veuillez d\'abord générer une citation et une vidéo');
+                    return;
+                }
+                alert('Fonctionnalité à implémenter: Export pour Instagram\nCitation: ' + currentQuote.content + '\nVidéo: ' + currentVideo);
+            });
+            
+            // Préparer pour TikTok
+            tiktokBtn.addEventListener('click', function() {
+                if (!currentQuote || !currentVideo) {
+                    alert('Veuillez d\'abord générer une citation et une vidéo');
+                    return;
+                }
+                alert('Fonctionnalité à implémenter: Export pour TikTok\nCitation: ' + currentQuote.content + '\nVidéo: ' + currentVideo);
+            });
+        });
+    </script>
+</body>
+</html>

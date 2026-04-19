@@ -1,0 +1,26 @@
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+.env.txt
+
+# ── Dossiers de travail (fichiers temporaires & vidéos générées) ───────────────
+temp/
+output/
+
+# ── Vidéos de test stockées à la racine ───────────────────────────────────────
+*.mp4
+*.jpg
+*.jpeg
+*.png
+# Exception : garder les assets
+!assets/**
+
+# ── Cache Python ──────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
