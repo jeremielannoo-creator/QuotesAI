@@ -141,7 +141,7 @@ def publish_tiktok(video_path: str, caption: str, hashtags: list[str]) -> str:
     body = {
         "post_info": {
             "title":                    full_caption[:150],
-            "privacy_level":            "PUBLIC_TO_EVERYONE",
+            "privacy_level":            "SELF_ONLY",  # sandbox : SELF_ONLY requis ; prod : PUBLIC_TO_EVERYONE
             "disable_duet":             False,
             "disable_stitch":           False,
             "disable_comment":          False,
