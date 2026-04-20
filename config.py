@@ -8,7 +8,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── APIs ───────────────────────────────────────────────
-ANTHROPIC_API_KEY       = os.getenv("ANTHROPIC_API_KEY", "")
+ANTHROPIC_API_KEY        = os.getenv("ANTHROPIC_API_KEY", "")
+HASHNODE_TOKEN           = os.getenv("HASHNODE_TOKEN", "")
+HASHNODE_PUBLICATION_ID  = os.getenv("HASHNODE_PUBLICATION_ID", "")
+
+FACEBOOK_PAGE_ID         = os.getenv("FACEBOOK_PAGE_ID", "")
+FACEBOOK_PAGE_TOKEN      = os.getenv("FACEBOOK_PAGE_TOKEN", "")
 PEXELS_API_KEY          = os.getenv("PEXELS_API_KEY", "")
 PIXABAY_API_KEY         = os.getenv("PIXABAY_API_KEY", "")
 

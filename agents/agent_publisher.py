@@ -9,6 +9,7 @@ import requests
 from config import (
     INSTAGRAM_ACCESS_TOKEN, INSTAGRAM_USER_ID,
     TIKTOK_ACCESS_TOKEN, TIKTOK_OPEN_ID,
+    FACEBOOK_PAGE_ID, FACEBOOK_PAGE_TOKEN,
 )
 
 _IG_BASE   = "https://graph.facebook.com/v21.0"
@@ -225,3 +226,35 @@ def _wait_tiktok_publish(
     raise TimeoutError(
         f"Publication TikTok non terminée après {max_attempts * interval}s"
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FACEBOOK PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+
+def publish_facebook(image_url: str, message: str) -> str:
+    """
+    Publie une photo + texte sur la Page Facebook.
+
+    Args:
+        image_url: URL publique de l'image (Cloudinary)
+        message:   Texte du post
+
+    Returns:
+        ID du post publié
+    """
+    print("  [facebook] Publication sur la Page...")
+    resp = requests.post(
+        f"https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos",
+        data={
+            "url":          image_url,
+            "message":      message,
+            "access_token": FACEBOOK_PAGE_TOKEN,
+        },
+        timeout=30,
+    )
+    if not resp.ok:
+        raise RuntimeError(f"Facebook {resp.status_code} — {resp.json()}")
+    post_id = resp.json().get("post_id") or resp.json().get("id", "")
+    print(f"  [facebook] ✓ Post publié ! ID : {post_id}")
+    return post_id
