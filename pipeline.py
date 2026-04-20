@@ -133,7 +133,7 @@ def run(
     if platform in ("tiktok", "both"):
         with console.status("[bold green]Agent 5/5 — Publication TikTok..."):
             try:
-                pub_id = publish_tiktok(public_url, caption, hashtags)
+                pub_id = publish_tiktok(final_video, caption, hashtags)
                 published["tiktok"] = pub_id
                 console.print(f"  ✓ [bold green]TikTok publié[/bold green] — publish_id : {pub_id}")
             except Exception as e:

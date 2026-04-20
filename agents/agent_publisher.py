@@ -1,8 +1,9 @@
 """
 Agent 5 — Publication sur Instagram (Reels) et TikTok
-Instagram : Meta Graph API v19.0 — nécessite une URL vidéo publique (Cloudinary)
-TikTok    : Content Posting API v2 — upload direct par URL publique
+Instagram : Meta Graph API v21.0 — nécessite une URL vidéo publique (Cloudinary)
+TikTok    : Content Posting API v2 — FILE_UPLOAD (upload direct du fichier)
 """
+import os
 import time
 import requests
 from config import (
@@ -112,41 +113,45 @@ def _wait_ig_container(
 # TIKTOK
 # ══════════════════════════════════════════════════════════════════════════════
 
-def publish_tiktok(video_url: str, caption: str, hashtags: list[str]) -> str:
+def publish_tiktok(video_path: str, caption: str, hashtags: list[str]) -> str:
     """
     Publie une vidéo sur TikTok via Content Posting API v2.
 
-    Utilise la source PULL_FROM_URL (TikTok télécharge depuis l'URL).
+    Utilise FILE_UPLOAD : upload direct du fichier local (pas de vérification
+    de domaine requise, contrairement à PULL_FROM_URL).
 
     Args:
-        video_url: URL publique HTTPS de la vidéo
-        caption:   Texte de la publication
-        hashtags:  Liste de hashtags
+        video_path: Chemin local vers le fichier MP4
+        caption:    Texte de la publication
+        hashtags:   Liste de hashtags
 
     Returns:
         publish_id TikTok
     """
     full_caption = f"{caption}\n{' '.join(hashtags)}"
+    file_size    = os.path.getsize(video_path)
 
     headers = {
         "Authorization": f"Bearer {TIKTOK_ACCESS_TOKEN}",
         "Content-Type":  "application/json; charset=utf-8",
     }
 
-    # ── Étape 1 : initier la publication ──────────────────────────────────────
-    print("  [tiktok] Initiation de la publication...")
+    # ── Étape 1 : initier l'upload ────────────────────────────────────────────
+    print("  [tiktok] Initiation de l'upload...")
     body = {
         "post_info": {
-            "title":            full_caption[:150],  # max 150 chars
-            "privacy_level":    "PUBLIC_TO_EVERYONE",
-            "disable_duet":     False,
-            "disable_stitch":   False,
-            "disable_comment":  False,
+            "title":                    full_caption[:150],
+            "privacy_level":            "PUBLIC_TO_EVERYONE",
+            "disable_duet":             False,
+            "disable_stitch":           False,
+            "disable_comment":          False,
             "video_cover_timestamp_ms": 1000,
         },
         "source_info": {
-            "source":    "PULL_FROM_URL",
-            "video_url": video_url,
+            "source":            "FILE_UPLOAD",
+            "video_size":        file_size,
+            "chunk_size":        file_size,   # fichier entier en 1 chunk
+            "total_chunk_count": 1,
         },
     }
     resp = requests.post(
@@ -156,14 +161,35 @@ def publish_tiktok(video_url: str, caption: str, hashtags: list[str]) -> str:
         timeout=30,
     )
     if not resp.ok:
-        raise RuntimeError(
-            f"TikTok {resp.status_code} — {resp.json()}"
-        )
+        raise RuntimeError(f"TikTok {resp.status_code} — {resp.json()}")
+
     result     = resp.json()
     publish_id = result["data"]["publish_id"]
+    upload_url = result["data"]["upload_url"]
     print(f"  [tiktok] Publication initiée : {publish_id}")
 
-    # ── Étape 2 : vérifier le statut ──────────────────────────────────────────
+    # ── Étape 2 : uploader le fichier ─────────────────────────────────────────
+    print("  [tiktok] Upload de la vidéo...")
+    with open(video_path, "rb") as fh:
+        video_data = fh.read()
+
+    up_resp = requests.put(
+        upload_url,
+        data=video_data,
+        headers={
+            "Content-Type":   "video/mp4",
+            "Content-Range":  f"bytes 0-{file_size - 1}/{file_size}",
+            "Content-Length": str(file_size),
+        },
+        timeout=180,
+    )
+    if not up_resp.ok:
+        raise RuntimeError(
+            f"TikTok upload {up_resp.status_code} — {up_resp.text[:300]}"
+        )
+    print("  [tiktok] ✓ Fichier uploadé")
+
+    # ── Étape 3 : vérifier le statut ──────────────────────────────────────────
     _wait_tiktok_publish(publish_id, headers)
 
     print(f"  [tiktok] ✓ Vidéo publiée sur TikTok ! publish_id : {publish_id}")
