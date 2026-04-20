@@ -91,9 +91,25 @@ def _download(url: str, dest: str) -> bool:
     try:
         resp = requests.get(url, stream=True, timeout=30)
         resp.raise_for_status()
+
+        # Vérifier que c'est bien de l'audio (pas une image JPEG)
+        content_type = resp.headers.get("Content-Type", "")
+        if content_type.startswith("image/"):
+            print(f"  [agent_music] URL audio est une image ({content_type}) — ignorée")
+            return False
+
         with open(dest, "wb") as fh:
             for chunk in resp.iter_content(chunk_size=1024 * 32):
                 fh.write(chunk)
+
+        # Vérification finale : rejeter si le fichier commence par des bytes JPEG
+        with open(dest, "rb") as fh:
+            magic = fh.read(3)
+        if magic[:2] == b"\xff\xd8":   # JPEG magic bytes
+            print("  [agent_music] Fichier téléchargé est une image, pas audio — ignoré")
+            os.remove(dest)
+            return False
+
         return True
     except Exception as e:
         print(f"  [agent_music] Échec téléchargement audio : {e}")
