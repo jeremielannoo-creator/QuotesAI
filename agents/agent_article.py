@@ -62,6 +62,34 @@ def parse_article(file_path: str) -> dict:
     }
 
 
+def parse_article_from_text(text: str, source_name: str = "drive") -> dict:
+    """Parse un texte brut (depuis Google Drive ou autre) sans chemin de fichier."""
+    content = text.strip()
+    lines   = content.split("\n")
+    first   = lines[0].strip()
+
+    if " — " in first:
+        title, author = first.split(" — ", 1)
+    elif " - " in first:
+        title, author = first.split(" - ", 1)
+    else:
+        title, author = first, ""
+
+    body_lines = lines[1:]
+    while body_lines and not body_lines[0].strip():
+        body_lines.pop(0)
+    body = "\n".join(body_lines).strip()
+
+    return {
+        "file_path": source_name,
+        "title":     title.strip(),
+        "author":    author.strip(),
+        "body":      body,
+        "raw":       content,
+        "slug":      _slugify(title.strip()),
+    }
+
+
 def _slugify(text: str) -> str:
     text = text.lower()
     for src, dst in [("àâä","a"),("éèêë","e"),("îï","i"),("ôö","o"),("ùûü","u"),("ç","c")]:

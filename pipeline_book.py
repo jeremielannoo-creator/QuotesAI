@@ -1,27 +1,35 @@
 """
 pipeline_book.py — Pipeline de publication de critiques littéraires.
 
+Source des articles : Google Drive
+  Mon Drive/AI/The Journey of Ava/Littérature/
+  Convention : AAAA-MM-JJ-B1 (mercredi 19h00) | AAAA-MM-JJ-B2 (dimanche 10h30)
+  Après publication : fichier déplacé dans 'Publiés/'
+
 Flux :
-  1. Lecture de l'article (.md dans content/articles/)
+  1. Lecture de l'article depuis Drive (selon le jour ou --drive-file)
   2. Couverture du livre (Open Library → Pexels fallback)
-  3. Upload Cloudinary (URL publique pour Hashnode + Instagram)
+  3. Upload Cloudinary
   4. Publication Hashnode (blog)
-  5. Génération des posts sociaux (Claude API)
-  6. Publication Instagram (photo + caption)
-  7. Publication TikTok (vidéo avec couverture)
-  8. Publication Facebook (photo + texte)
+  5. Formatage des posts sociaux (texte Drive, pas d'API externe)
+  6. Publication Instagram
+  7. Publication TikTok
+  8. Publication Facebook
+  9. Archivage Drive
 
 Usage :
-  python pipeline_book.py
-  python pipeline_book.py --article content/articles/mon-article.md
+  python pipeline_book.py                          # auto selon jour (mer/dim)
+  python pipeline_book.py --drive-file 2026-04-22-B1
+  python pipeline_book.py --article chemin/local.md
   python pipeline_book.py --platform instagram
   python pipeline_book.py --dry-run
 """
 import argparse
+import os
 import time
 from rich.console import Console
 
-from agents.agent_article       import get_latest_article, parse_article
+from agents.agent_article       import parse_article
 from agents.agent_book_cover    import get_book_cover
 from agents.agent_social_writer import generate_social_posts
 from agents.agent_blog          import publish_to_hashnode
@@ -29,11 +37,44 @@ from utils.video_host           import upload_video
 
 console = Console()
 
+# Créer le dossier logs si absent
+os.makedirs(os.path.join(os.path.dirname(__file__), "logs"), exist_ok=True)
+
+
+def _get_article(article_path: str | None, drive_file: str | None) -> dict | None:
+    """Résout la source de l'article."""
+
+    # 1. Fichier local explicite
+    if article_path:
+        return parse_article(article_path)
+
+    # 2. Fichier Drive explicite
+    if drive_file:
+        try:
+            from utils.drive_reader import get_article_by_pattern
+            return get_article_by_pattern(drive_file)
+        except ImportError:
+            console.print("[red]google-api-python-client non installé (voir SETUP_GOOGLE_DRIVE.md)[/red]")
+            return None
+
+    # 3. Auto selon le jour courant (mercredi → B1, dimanche → B2)
+    try:
+        from utils.drive_reader import get_article_for_today
+        article = get_article_for_today()
+        if article:
+            return article
+        # Pas un jour de publication → ne rien faire
+        return None
+    except ImportError:
+        console.print("[red]google-api-python-client non installé (voir SETUP_GOOGLE_DRIVE.md)[/red]")
+        return None
+
 
 def run(
     article_path: str | None = None,
-    platform: str = "all",
-    dry_run: bool = False,
+    drive_file:   str | None = None,
+    platform:     str        = "all",
+    dry_run:      bool       = False,
 ):
     started_at = time.time()
     results    = {"blog": None, "instagram": None, "tiktok": None, "facebook": None}
@@ -47,10 +88,11 @@ def run(
 
     # ── 1. Lire l'article ─────────────────────────────────────────────────────
     with console.status("[bold]Lecture de l'article..."):
-        article = parse_article(article_path) if article_path else get_latest_article()
-        if not article:
-            console.print("[red]Aucun article trouvé. Dépose un .md dans content/articles/[/red]")
-            return results
+        article = _get_article(article_path, drive_file)
+
+    if not article:
+        console.print("[yellow]Aucun article à publier aujourd'hui.[/yellow]")
+        return results
 
     console.print(f"  ✓ Article : [bold]{article['title']}[/bold] — {article['author']}")
 
@@ -68,7 +110,7 @@ def run(
     if cover_path and not dry_run:
         with console.status("[bold]Upload couverture..."):
             try:
-                cover_url = upload_video(cover_path)   # réutilise l'uploader Cloudinary
+                cover_url = upload_video(cover_path)
                 console.print(f"  ✓ Cloudinary : [dim]{cover_url}[/dim]")
             except Exception as e:
                 console.print(f"  ⚠ Cloudinary : {e}")
@@ -83,19 +125,18 @@ def run(
             except Exception as e:
                 console.print(f"  ✗ [red]Hashnode : {e}[/red]")
 
-    # ── 5. Génération posts sociaux ───────────────────────────────────────────
-    with console.status("[bold]Génération des posts (Claude API)..."):
+    # ── 5. Formatage des posts sociaux ────────────────────────────────────────
+    with console.status("[bold]Formatage des posts..."):
         posts = generate_social_posts(article)
 
-    console.print("  ✓ Posts générés")
+    console.print("  ✓ Posts formatés")
 
     if dry_run:
-        console.print("\n[yellow]── DRY RUN — Aperçu des posts ──[/yellow]")
-        console.print(f"\n[bold]Instagram caption :[/bold]\n{posts.get('instagram_caption','')}")
+        console.print("\n[yellow]── DRY RUN — Aperçu ──[/yellow]")
+        console.print(f"\n[bold]Instagram caption :[/bold]\n{posts.get('instagram_caption','')[:300]}…")
         console.print(f"\n[bold]Hashtags :[/bold]\n{posts.get('hashtags','')}")
         console.print(f"\n[bold]Reel script :[/bold]\n{posts.get('reel_script','')}")
-        console.print(f"\n[bold]TikTok script :[/bold]\n{posts.get('tiktok_script','')}")
-        console.print(f"\n[bold]Facebook :[/bold]\n{posts.get('facebook_post','')}")
+        console.print(f"\n[bold]Facebook :[/bold]\n{posts.get('facebook_post','')[:300]}…")
         _print_summary(results, started_at)
         return results
 
@@ -104,15 +145,15 @@ def run(
         with console.status("[bold]Publication Instagram..."):
             try:
                 from agents.agent_publisher import publish_instagram
-                caption   = posts.get("instagram_caption", article["title"])
-                hashtags  = posts.get("hashtags", "").split()
-                media_id  = publish_instagram(cover_url, caption, hashtags)
+                caption  = posts.get("instagram_caption", article["title"])
+                hashtags = posts.get("hashtags", "").split()
+                media_id = publish_instagram(cover_url, caption, hashtags)
                 results["instagram"] = media_id
                 console.print(f"  ✓ [bold green]Instagram publié[/bold green] — ID : {media_id}")
             except Exception as e:
                 console.print(f"  ✗ [red]Instagram : {e}[/red]")
 
-    # ── 7. TikTok (vidéo couverture + script) ─────────────────────────────────
+    # ── 7. TikTok ─────────────────────────────────────────────────────────────
     if platform in ("all", "tiktok") and cover_path:
         with console.status("[bold]Publication TikTok..."):
             try:
@@ -150,6 +191,16 @@ def run(
             except Exception as e:
                 console.print(f"  ✗ [red]Facebook : {e}[/red]")
 
+    # ── 9. Archivage Drive ────────────────────────────────────────────────────
+    published_count = sum(1 for v in results.values() if v)
+    if published_count > 0 and article.get("_drive_file_id"):
+        with console.status("[bold]Archivage Drive..."):
+            try:
+                from utils.drive_reader import mark_as_published
+                mark_as_published(article)
+            except Exception as e:
+                console.print(f"  ⚠ Archivage Drive : {e}")
+
     _print_summary(results, started_at)
     return results
 
@@ -169,11 +220,18 @@ def _print_summary(results: dict, started_at: float):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="QuotesAI — Pipeline Livre")
-    parser.add_argument("--article",  type=str, default=None,
-                        help="Chemin vers l'article .md (sinon : dernier article)")
-    parser.add_argument("--platform", choices=["all", "blog", "instagram", "tiktok", "facebook"],
+    parser.add_argument("--drive-file", type=str, default=None,
+                        help="Forcer un fichier Drive (ex: 2026-04-22-B1)")
+    parser.add_argument("--article",   type=str, default=None,
+                        help="Utiliser un fichier local à la place de Drive")
+    parser.add_argument("--platform",  choices=["all", "blog", "instagram", "tiktok", "facebook"],
                         default="all")
-    parser.add_argument("--dry-run",  action="store_true",
-                        help="Génère les posts sans publier")
+    parser.add_argument("--dry-run",   action="store_true",
+                        help="Affiche les posts sans publier")
     args = parser.parse_args()
-    run(article_path=args.article, platform=args.platform, dry_run=args.dry_run)
+    run(
+        article_path=args.article,
+        drive_file=args.drive_file,
+        platform=args.platform,
+        dry_run=args.dry_run,
+    )

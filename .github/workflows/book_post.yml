@@ -1,0 +1,67 @@
+name: QuotesAI — Pipeline Livre
+
+on:
+  schedule:
+    # Mercredi 19h00 Paris (CEST = UTC+2)  →  17h00 UTC
+    - cron: '0 17 * * 3'
+    # Dimanche 10h30 Paris (CEST = UTC+2)  →  08h30 UTC
+    - cron: '30 8 * * 0'
+  workflow_dispatch:   # Déclenchement manuel depuis l'onglet Actions
+    inputs:
+      drive_file:
+        description: 'Forcer un fichier Drive (ex: 2026-04-23-B1). Vide = auto.'
+        required: false
+        default: ''
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Code ───────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      # ── 3. FFmpeg ─────────────────────────────────────────────────────────
+      - name: FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+
+      # ── 4. Dépendances Python ─────────────────────────────────────────────
+      - name: Dépendances
+        run: pip install -r requirements.txt
+
+      # ── 5. Polices ────────────────────────────────────────────────────────
+      - name: Polices
+        run: python setup_fonts.py
+
+      # ── 6. Pipeline livre ─────────────────────────────────────────────────
+      - name: Lancer le pipeline
+        env:
+          DRIVE_GAS_URL:           ${{ secrets.DRIVE_GAS_URL }}
+          PEXELS_API_KEY:          ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY:         ${{ secrets.PIXABAY_API_KEY }}
+          CLOUDINARY_CLOUD_NAME:   ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY:      ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:   ${{ secrets.CLOUDINARY_API_SECRET }}
+          INSTAGRAM_ACCESS_TOKEN:  ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID:       ${{ secrets.INSTAGRAM_USER_ID }}
+          TIKTOK_ACCESS_TOKEN:     ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_OPEN_ID:          ${{ secrets.TIKTOK_OPEN_ID }}
+          TIKTOK_REFRESH_TOKEN:    ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          HASHNODE_TOKEN:          ${{ secrets.HASHNODE_TOKEN }}
+          HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUBLICATION_ID }}
+          FACEBOOK_PAGE_ID:        ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_TOKEN:     ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+        run: |
+          if [ -n "${{ github.event.inputs.drive_file }}" ]; then
+            python pipeline_book.py --drive-file "${{ github.event.inputs.drive_file }}"
+          else
+            python pipeline_book.py
+          fi
