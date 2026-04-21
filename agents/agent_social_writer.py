@@ -21,7 +21,7 @@ def generate_social_posts(article: dict) -> dict:
     body = article["body"]
 
     return {
-        "instagram_caption": _truncate(body, 2200),
+        "instagram_caption": _truncate(body, 2000),
         "hashtags":          HASHTAGS_DEFAULT,
         "reel_script":       _first_sentences(body, 3),
         "tiktok_script":     _truncate(body, 2200),
