@@ -21,19 +21,23 @@ cloudinary.config(
 
 def upload_video(local_path: str, public_id: str | None = None) -> str:
     """
-    Upload une vidéo sur Cloudinary et retourne son URL publique.
+    Upload un fichier sur Cloudinary et retourne son URL publique.
+    Détecte automatiquement image ou vidéo selon l'extension.
 
     Args:
-        local_path: chemin du fichier MP4 local
+        local_path: chemin du fichier local (MP4, JPG, PNG…)
         public_id:  identifiant Cloudinary (optionnel, généré auto sinon)
 
     Returns:
-        URL HTTPS de la vidéo hébergée
+        URL HTTPS du fichier hébergé
     """
     print(f"  [video_host] Upload Cloudinary : {local_path}")
 
+    ext = local_path.rsplit(".", 1)[-1].lower()
+    rtype = "image" if ext in ("jpg", "jpeg", "png", "gif", "webp") else "video"
+
     kwargs = {
-        "resource_type": "video",
+        "resource_type": rtype,
         "folder":        "quotesai",
         "overwrite":     True,
     }
