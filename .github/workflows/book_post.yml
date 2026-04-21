@@ -9,9 +9,14 @@ on:
   workflow_dispatch:   # Déclenchement manuel depuis l'onglet Actions
     inputs:
       drive_file:
-        description: 'Forcer un fichier Drive (ex: 2026-04-23-B1). Vide = auto.'
+        description: 'Fichier Drive (ex: 2026-04-23-B1). Vide = auto selon le jour.'
         required: false
         default: ''
+      dry_run:
+        description: 'Dry-run : affiche les posts sans publier'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   publish:
@@ -60,8 +65,11 @@ jobs:
           FACEBOOK_PAGE_ID:        ${{ secrets.FACEBOOK_PAGE_ID }}
           FACEBOOK_PAGE_TOKEN:     ${{ secrets.FACEBOOK_PAGE_TOKEN }}
         run: |
+          ARGS=""
           if [ -n "${{ github.event.inputs.drive_file }}" ]; then
-            python pipeline_book.py --drive-file "${{ github.event.inputs.drive_file }}"
-          else
-            python pipeline_book.py
+            ARGS="$ARGS --drive-file ${{ github.event.inputs.drive_file }}"
           fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python pipeline_book.py $ARGS
