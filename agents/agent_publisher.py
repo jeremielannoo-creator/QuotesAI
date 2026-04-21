@@ -20,6 +20,74 @@ _TIKTOK_BASE = "https://open.tiktokapis.com/v2"
 # INSTAGRAM
 # ══════════════════════════════════════════════════════════════════════════════
 
+def publish_instagram_carousel(image_urls: list[str], caption: str) -> str:
+    """
+    Publie un carousel Instagram (jusqu'à 10 images).
+
+    Flux :
+      1. Créer un conteneur par image (is_carousel_item=true)
+      2. Créer le conteneur carousel (children=[...])
+      3. Publier
+
+    Args:
+        image_urls: liste d'URLs publiques Cloudinary (max 10)
+        caption:    texte complet de la publication
+
+    Returns:
+        ID du carousel publié
+    """
+    if not image_urls:
+        raise ValueError("Aucune image pour le carousel")
+
+    # ── Étape 1 : conteneur par image ────────────────────────────────────────
+    child_ids = []
+    for i, url in enumerate(image_urls[:10], 1):
+        print(f"  [instagram] Conteneur slide {i}/{min(len(image_urls), 10)}…")
+        resp = requests.post(
+            f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media",
+            data={
+                "image_url":        url,
+                "is_carousel_item": "true",
+                "access_token":     INSTAGRAM_ACCESS_TOKEN,
+            },
+            timeout=30,
+        )
+        if not resp.ok:
+            raise RuntimeError(f"Instagram slide {i} : {resp.status_code} — {resp.json()}")
+        child_ids.append(resp.json()["id"])
+
+    # ── Étape 2 : conteneur carousel ─────────────────────────────────────────
+    print("  [instagram] Création du conteneur carousel…")
+    resp = requests.post(
+        f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media",
+        data={
+            "media_type":   "CAROUSEL",
+            "children":     ",".join(child_ids),
+            "caption":      caption,
+            "access_token": INSTAGRAM_ACCESS_TOKEN,
+        },
+        timeout=30,
+    )
+    if not resp.ok:
+        raise RuntimeError(f"Instagram carousel : {resp.status_code} — {resp.json()}")
+    carousel_id = resp.json()["id"]
+
+    # ── Étape 3 : publier ────────────────────────────────────────────────────
+    print("  [instagram] Publication du carousel…")
+    resp = requests.post(
+        f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media_publish",
+        data={
+            "creation_id":  carousel_id,
+            "access_token": INSTAGRAM_ACCESS_TOKEN,
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    media_id = resp.json()["id"]
+    print(f"  [instagram] ✓ Carousel publié ! ID : {media_id}")
+    return media_id
+
+
 def publish_instagram(video_url: str, caption: str, hashtags: list[str]) -> str:
     """
     Publie un Reel sur Instagram.

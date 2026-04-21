@@ -133,16 +133,23 @@ def run(
         _print_summary(results, started_at)
         return results
 
-    # ── 6. Instagram ──────────────────────────────────────────────────────────
-    if platform in ("all", "instagram") and cover_url:
-        with console.status("[bold]Publication Instagram..."):
+    # ── 6. Instagram carousel ────────────────────────────────────────────────
+    if platform in ("all", "instagram"):
+        with console.status("[bold]Génération carousel Instagram..."):
             try:
-                from agents.agent_publisher import publish_instagram
+                from agents.agent_carousel  import create_carousel
+                from agents.agent_publisher import publish_instagram_carousel
+
+                slides     = create_carousel(article, cover_path, posts.get("hashtags", ""))
+                slide_urls = [upload_video(p) for p in slides]
+
                 caption  = posts.get("instagram_caption", article["title"])
-                hashtags = posts.get("hashtags", "").split()
-                media_id = publish_instagram(cover_url, caption, hashtags)
+                hashtags = posts.get("hashtags", "")
+                full_cap = f"{caption}\n\n{hashtags}"
+
+                media_id = publish_instagram_carousel(slide_urls, full_cap)
                 results["instagram"] = media_id
-                console.print(f"  ✓ [bold green]Instagram publié[/bold green] — ID : {media_id}")
+                console.print(f"  ✓ [bold green]Instagram carousel publié[/bold green] — ID : {media_id}")
             except Exception as e:
                 console.print(f"  ✗ [red]Instagram : {e}[/red]")
 
