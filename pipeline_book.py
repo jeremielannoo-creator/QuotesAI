@@ -48,26 +48,19 @@ def _get_article(article_path: str | None, drive_file: str | None) -> dict | Non
     if article_path:
         return parse_article(article_path)
 
-    # 2. Fichier Drive explicite
+    # 2. Fichier Drive explicite  (ex: "2026-04-23-B1")
     if drive_file:
-        try:
-            from utils.drive_reader import get_article_by_pattern
-            return get_article_by_pattern(drive_file)
-        except ImportError:
-            console.print("[red]google-api-python-client non installé (voir SETUP_GOOGLE_DRIVE.md)[/red]")
+        parts = drive_file.rsplit("-", 1)
+        if len(parts) != 2:
+            console.print(f"[red]Format --drive-file invalide : {drive_file!r}. Attendu : AAAA-MM-JJ-B1[/red]")
             return None
+        date_str, slot = parts
+        from utils.drive_reader import get_article_by_slot
+        return get_article_by_slot(date_str, slot)
 
     # 3. Auto selon le jour courant (mercredi → B1, dimanche → B2)
-    try:
-        from utils.drive_reader import get_article_for_today
-        article = get_article_for_today()
-        if article:
-            return article
-        # Pas un jour de publication → ne rien faire
-        return None
-    except ImportError:
-        console.print("[red]google-api-python-client non installé (voir SETUP_GOOGLE_DRIVE.md)[/red]")
-        return None
+    from utils.drive_reader import get_article_for_today
+    return get_article_for_today()
 
 
 def run(
