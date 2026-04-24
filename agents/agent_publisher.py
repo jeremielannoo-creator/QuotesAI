@@ -107,26 +107,29 @@ def publish_instagram(video_url: str, caption: str, hashtags: list[str]) -> str:
     """
     full_caption = f"{caption}\n\n{' '.join(hashtags)}"
 
-    # ── Étape 1 : créer le conteneur (IMAGE) ─────────────────────────────────
-    print("  [instagram] Création du conteneur Image...")
+    # ── Étape 1 : créer le conteneur Reel ───────────────────────────────────
+    print("  [instagram] Création du conteneur Reel...")
     resp = requests.post(
         f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media",
         data={
-            "image_url":    video_url,
-            "caption":      full_caption,
-            "access_token": INSTAGRAM_ACCESS_TOKEN,
+            "media_type":    "REELS",
+            "video_url":     video_url,
+            "caption":       full_caption,
+            "share_to_feed": "true",
+            "access_token":  INSTAGRAM_ACCESS_TOKEN,
         },
         timeout=30,
     )
     if not resp.ok:
-        raise RuntimeError(
-            f"Instagram {resp.status_code} — {resp.json()}"
-        )
+        raise RuntimeError(f"Instagram {resp.status_code} — {resp.json()}")
     container_id = resp.json()["id"]
     print(f"  [instagram] Conteneur créé : {container_id}")
 
-    # ── Étape 2 : publier ────────────────────────────────────────────────────
-    print("  [instagram] Publication de l'image...")
+    # ── Étape 2 : attendre FINISHED ──────────────────────────────────────────
+    _wait_ig_container(container_id)
+
+    # ── Étape 3 : publier ────────────────────────────────────────────────────
+    print("  [instagram] Publication du Reel...")
     resp = requests.post(
         f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media_publish",
         data={
@@ -137,7 +140,7 @@ def publish_instagram(video_url: str, caption: str, hashtags: list[str]) -> str:
     )
     resp.raise_for_status()
     media_id = resp.json()["id"]
-    print(f"  [instagram] ✓ Image publiée ! ID : {media_id}")
+    print(f"  [instagram] ✓ Reel publié ! ID : {media_id}")
     return media_id
 
 
