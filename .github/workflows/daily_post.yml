@@ -11,10 +11,16 @@ on:
     - cron: '10 10 * * 2'
     - cron: '10 10 * * 3'
     - cron: '10 10 * * 4'
+    # Mardi, Mercredi, Jeudi 19h45 Paris (été) → 17h45 UTC — Décompression
+    - cron: '45 17 * * 2'
+    - cron: '45 17 * * 3'
+    - cron: '45 17 * * 4'
     # Vendredi 17h00 Paris (été) → 15h00 UTC
     - cron: '0 15 * * 5'
     # Samedi 10h00 Paris (été) → 08h00 UTC
     - cron: '0 8 * * 6'
+    # Samedi 18h00 Paris (été) → 16h00 UTC — Profite de la vie
+    - cron: '0 16 * * 6'
     # Dimanche 21h00 Paris (été) → 19h00 UTC
     - cron: '0 19 * * 0'
   workflow_dispatch:   # Déclenchement manuel depuis l'onglet Actions
