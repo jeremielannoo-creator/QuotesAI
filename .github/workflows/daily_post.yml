@@ -2,9 +2,21 @@ name: QuotesAI — Publication quotidienne
 
 on:
   schedule:
-    # 07h00 UTC = 09h00 Paris (été) / 08h00 (hiver)
-    # Modifier l'heure ici : https://crontab.guru
-    - cron: '0 7 * * *'
+    # Toutes les heures sont en UTC (Paris été = UTC+2, hiver = UTC+1)
+    # Lundi 07h30 Paris (été) → 05h30 UTC
+    - cron: '30 5 * * 1'
+    # Lundi 18h15 Paris (été) → 16h15 UTC
+    - cron: '15 16 * * 1'
+    # Mardi, Mercredi, Jeudi 12h10 Paris (été) → 10h10 UTC
+    - cron: '10 10 * * 2'
+    - cron: '10 10 * * 3'
+    - cron: '10 10 * * 4'
+    # Vendredi 17h00 Paris (été) → 15h00 UTC
+    - cron: '0 15 * * 5'
+    # Samedi 10h00 Paris (été) → 08h00 UTC
+    - cron: '0 8 * * 6'
+    # Dimanche 21h00 Paris (été) → 19h00 UTC
+    - cron: '0 19 * * 0'
   workflow_dispatch:   # Déclenchement manuel depuis l'onglet Actions
 
 jobs:
