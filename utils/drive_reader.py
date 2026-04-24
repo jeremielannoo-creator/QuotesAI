@@ -13,55 +13,51 @@ from datetime import date, timedelta
 from config import DRIVE_GAS_URL
 
 
-def _today_slot() -> tuple[str, str] | tuple[None, None]:
+def _today_slot() -> str | None:
     """
-    Retourne (date_str, slot) selon le jour courant.
-      Mercredi → (date du jour, 'B1')
-      Dimanche → (date du mercredi précédent, 'B2')
-      Autre    → (None, None)
+    Retourne le slot selon le jour courant.
+      Mercredi → 'B1'
+      Dimanche → 'B2'
+      Autre    → None
     """
-    today = date.today()
-    wd = today.weekday()  # 0=lundi … 6=dimanche
-
-    if wd == 2:  # mercredi
-        return today.strftime("%Y-%m-%d"), "B1"
-    elif wd == 6:  # dimanche
-        wed = today - timedelta(days=4)
-        return wed.strftime("%Y-%m-%d"), "B2"
-    return None, None
+    wd = date.today().weekday()  # 0=lundi … 6=dimanche
+    if wd == 2:
+        return "B1"
+    if wd == 6:
+        return "B2"
+    return None
 
 
 def get_article_for_today() -> dict | None:
     """
-    Récupère l'article à publier aujourd'hui selon la convention B1/B2.
-    Retourne None si ce n'est pas un jour de publication ou fichier absent.
+    Récupère l'article à publier aujourd'hui (B1 le mercredi, B2 le dimanche).
+    Cherche par slot uniquement — peu importe la date dans le nom de fichier.
     """
-    d, slot = _today_slot()
-    if not d:
-        print(f"  [drive_reader] Pas un jour de publication (mer/dim uniquement)")
+    slot = _today_slot()
+    if not slot:
+        print("  [drive_reader] Pas un jour de publication (mer/dim uniquement)")
         return None
-    return get_article_by_slot(d, slot)
+    return get_article_by_slot(slot)
 
 
-def get_article_by_slot(date_str: str, slot: str) -> dict | None:
+def get_article_by_slot(slot: str, date_str: str | None = None) -> dict | None:
     """
-    Récupère l'article Drive correspondant à AAAA-MM-JJ-B1 ou B2.
-    Appelle le GAS Web App via HTTP GET.
+    Récupère le premier article Drive dont le nom contient '-B1' ou '-B2'.
 
-    date_str : '2026-04-23'
     slot     : 'B1' ou 'B2'
+    date_str : optionnel — si fourni, cherche d'abord AAAA-MM-JJ-slot,
+               puis replie sur slot seul si introuvable.
     """
     if not DRIVE_GAS_URL:
         print("  [drive_reader] DRIVE_GAS_URL non configuré dans .env")
         return None
 
-    pattern = f"{date_str}-{slot}"
+    params = {"slot": slot}
+    if date_str:
+        params["date"] = date_str   # GAS tente l'exact en premier
+
     try:
-        resp = requests.get(
-            DRIVE_GAS_URL,
-            params={"slot": slot, "date": date_str},
-            timeout=30,
-        )
+        resp = requests.get(DRIVE_GAS_URL, params=params, timeout=30)
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:

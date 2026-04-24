@@ -48,15 +48,16 @@ def _get_article(article_path: str | None, drive_file: str | None) -> dict | Non
     if article_path:
         return parse_article(article_path)
 
-    # 2. Fichier Drive explicite  (ex: "2026-04-23-B1")
+    # 2. Fichier Drive explicite  (ex: "2026-04-29-B1" ou juste "B1")
     if drive_file:
-        parts = drive_file.rsplit("-", 1)
-        if len(parts) != 2:
-            console.print(f"[red]Format --drive-file invalide : {drive_file!r}. Attendu : AAAA-MM-JJ-B1[/red]")
+        # Extrait le slot (dernier segment après le dernier '-')
+        slot = drive_file.rsplit("-", 1)[-1].upper()
+        if slot not in ("B1", "B2"):
+            console.print(f"[red]Format --drive-file invalide : {drive_file!r}. Attendu : AAAA-MM-JJ-B1 ou B1[/red]")
             return None
-        date_str, slot = parts
+        date_str = drive_file.rsplit("-", 1)[0] if "-" in drive_file[:-3] else None
         from utils.drive_reader import get_article_by_slot
-        return get_article_by_slot(date_str, slot)
+        return get_article_by_slot(slot, date_str or None)
 
     # 3. Auto selon le jour courant (mercredi → B1, dimanche → B2)
     from utils.drive_reader import get_article_for_today
