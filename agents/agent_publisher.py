@@ -182,10 +182,10 @@ def _wait_ig_container(
 
 def publish_tiktok(video_path: str, caption: str, hashtags: list[str]) -> str:
     """
-    Publie une vidéo sur TikTok via Content Posting API v2.
+    Publie une vidéo sur TikTok via un webhook Make.com.
 
-    Utilise FILE_UPLOAD : upload direct du fichier local (pas de vérification
-    de domaine requise, contrairement à PULL_FROM_URL).
+    Make est une plateforme approuvée par TikTok — elle gère le posting.
+    Le pipeline uploade la vidéo sur Cloudinary puis envoie l'URL au webhook.
 
     Args:
         video_path: Chemin local vers le fichier MP4
@@ -193,105 +193,33 @@ def publish_tiktok(video_path: str, caption: str, hashtags: list[str]) -> str:
         hashtags:   Liste de hashtags
 
     Returns:
-        publish_id TikTok
+        "make-triggered"
     """
+    from config import MAKE_TIKTOK_WEBHOOK_URL
+    from utils.video_host import upload_video
+
+    if not MAKE_TIKTOK_WEBHOOK_URL:
+        raise RuntimeError("MAKE_TIKTOK_WEBHOOK_URL non configuré dans .env / secrets GitHub")
+
     full_caption = f"{caption}\n{' '.join(hashtags)}"
-    file_size    = os.path.getsize(video_path)
 
-    headers = {
-        "Authorization": f"Bearer {TIKTOK_ACCESS_TOKEN}",
-        "Content-Type":  "application/json; charset=utf-8",
-    }
+    print("  [tiktok/make] Upload vidéo sur Cloudinary...")
+    video_url = upload_video(video_path)
 
-    # ── Étape 1 : initier l'upload ────────────────────────────────────────────
-    print("  [tiktok] Initiation de l'upload...")
-    body = {
-        "post_info": {
-            "title":                    full_caption[:150],
-            "privacy_level":            "SELF_ONLY",  # sandbox : SELF_ONLY requis ; prod : PUBLIC_TO_EVERYONE
-            "disable_duet":             False,
-            "disable_stitch":           False,
-            "disable_comment":          False,
-            "video_cover_timestamp_ms": 1000,
-        },
-        "source_info": {
-            "source":            "FILE_UPLOAD",
-            "video_size":        file_size,
-            "chunk_size":        file_size,   # fichier entier en 1 chunk
-            "total_chunk_count": 1,
-        },
-    }
+    print("  [tiktok/make] Envoi au webhook Make...")
     resp = requests.post(
-        f"{_TIKTOK_BASE}/post/publish/video/init/",
-        json=body,
-        headers=headers,
+        MAKE_TIKTOK_WEBHOOK_URL,
+        json={
+            "video_url": video_url,
+            "caption":   full_caption[:2200],
+        },
         timeout=30,
     )
     if not resp.ok:
-        raise RuntimeError(f"TikTok {resp.status_code} — {resp.json()}")
+        raise RuntimeError(f"Make webhook {resp.status_code} — {resp.text[:200]}")
 
-    result     = resp.json()
-    publish_id = result["data"]["publish_id"]
-    upload_url = result["data"]["upload_url"]
-    print(f"  [tiktok] Publication initiée : {publish_id}")
-
-    # ── Étape 2 : uploader le fichier ─────────────────────────────────────────
-    print("  [tiktok] Upload de la vidéo...")
-    with open(video_path, "rb") as fh:
-        video_data = fh.read()
-
-    up_resp = requests.put(
-        upload_url,
-        data=video_data,
-        headers={
-            "Content-Type":   "video/mp4",
-            "Content-Range":  f"bytes 0-{file_size - 1}/{file_size}",
-            "Content-Length": str(file_size),
-        },
-        timeout=180,
-    )
-    if not up_resp.ok:
-        raise RuntimeError(
-            f"TikTok upload {up_resp.status_code} — {up_resp.text[:300]}"
-        )
-    print("  [tiktok] ✓ Fichier uploadé")
-
-    # ── Étape 3 : vérifier le statut ──────────────────────────────────────────
-    _wait_tiktok_publish(publish_id, headers)
-
-    print(f"  [tiktok] ✓ Vidéo publiée sur TikTok ! publish_id : {publish_id}")
-    return publish_id
-
-
-def _wait_tiktok_publish(
-    publish_id: str,
-    headers: dict,
-    max_attempts: int = 20,
-    interval: int = 15,
-):
-    """Vérifie périodiquement le statut de publication TikTok."""
-    for attempt in range(max_attempts):
-        resp = requests.post(
-            f"{_TIKTOK_BASE}/post/publish/status/fetch/",
-            json={"publish_id": publish_id},
-            headers=headers,
-            timeout=15,
-        )
-        resp.raise_for_status()
-        data   = resp.json().get("data", {})
-        status = data.get("status", "PROCESSING_UPLOAD")
-        print(f"  [tiktok] Statut ({attempt + 1}/{max_attempts}) : {status}")
-
-        if status in ("PUBLISH_COMPLETE", "SEND_TO_USER_INBOX"):
-            return
-        if "FAILED" in status or "ERROR" in status:
-            raise RuntimeError(f"Erreur TikTok lors de la publication : {data}")
-
-        time.sleep(interval)
-
-    raise TimeoutError(
-        f"Publication TikTok non terminée après {max_attempts * interval}s"
-    )
+    print("  [tiktok/make] ✓ Vidéo transmise à Make pour publication TikTok")
+    return "make-triggered"
 
 
 # ══════════════════════════════════════════════════════════════════════════════

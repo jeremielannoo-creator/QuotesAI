@@ -24,7 +24,6 @@ from agents.agent_music     import select_music
 from agents.agent_render    import render_video, check_ffmpeg
 from agents.agent_publisher import publish_instagram, publish_tiktok
 from utils.video_host       import upload_video
-from utils.tiktok_refresh   import refresh_tiktok_token
 
 console = Console()
 
@@ -53,11 +52,6 @@ def run(
         f"Dry-run : [yellow]{dry_run}[/yellow]",
         border_style="cyan",
     ))
-
-    # Renouvellement automatique du token TikTok si refresh_token disponible
-    if not dry_run and platform in ("tiktok", "both"):
-        with console.status("[bold green]Renouvellement token TikTok..."):
-            refresh_tiktok_token()
 
     # ══════════════════════════════════════════════════════════════════════════
     # AGENT 1 — Génération de la citation

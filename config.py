@@ -28,6 +28,8 @@ INSTAGRAM_USER_ID       = os.getenv("INSTAGRAM_USER_ID", "")
 TIKTOK_ACCESS_TOKEN     = os.getenv("TIKTOK_ACCESS_TOKEN", "")
 TIKTOK_OPEN_ID          = os.getenv("TIKTOK_OPEN_ID", "")
 
+MAKE_TIKTOK_WEBHOOK_URL = os.getenv("MAKE_TIKTOK_WEBHOOK_URL", "")
+
 # ── Vidéo ──────────────────────────────────────────────
 VIDEO_WIDTH    = 1080          # Format portrait Instagram/TikTok
 VIDEO_HEIGHT   = 1920
