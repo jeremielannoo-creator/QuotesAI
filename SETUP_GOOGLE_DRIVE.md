@@ -15,13 +15,17 @@ Le script tourne dans ton compte Google, accessible via une URL HTTPS.
 
 ```javascript
 /**
- * QuotesAI — Drive Reader
- * GET  ?slot=B1&date=2026-04-23  →  retourne le contenu de l'article
- * POST {fileId: "..."}           →  archive l'article dans Publiés/
+ * QuotesAI — Drive Reader & Video Uploader
+ *
+ * GET  ?slot=B1&date=2026-04-23          →  retourne le contenu de l'article
+ * POST {fileId: "..."}                   →  archive l'article dans Publiés/
+ * POST {action:"video", video_url, ...}  →  sauvegarde vidéo + rappel Calendar
  */
 
 var FOLDER_NAME    = "Littérature";
 var PUBLISHED_NAME = "Publiés";
+
+// ── GET : lecture article ─────────────────────────────────────────────────────
 
 function doGet(e) {
   try {
@@ -65,15 +69,24 @@ function doGet(e) {
   } catch (e) { return err(e.toString()); }
 }
 
+// ── POST : archive article OU sauvegarde vidéo ────────────────────────────────
+
 function doPost(e) {
   try {
-    var data   = JSON.parse(e.postData.contents);
+    var data = JSON.parse(e.postData.contents);
+
+    // Sauvegarde vidéo + rappel Calendar
+    if (data.action === "video") {
+      return handleVideoUpload(data);
+    }
+
+    // Archive article dans Publiés/
     var fileId = data.fileId;
     if (!fileId) return err("fileId manquant");
 
-    var file       = DriveApp.getFileById(fileId);
-    var published  = findOrCreateFolder(PUBLISHED_NAME);
-    var parents    = file.getParents();
+    var file      = DriveApp.getFileById(fileId);
+    var published = findOrCreateFolder(PUBLISHED_NAME);
+    var parents   = file.getParents();
 
     if (parents.hasNext()) parents.next().removeFile(file);
     published.addFile(file);
@@ -81,6 +94,43 @@ function doPost(e) {
     return json({ status: "archived", name: file.getName() });
 
   } catch (e) { return err(e.toString()); }
+}
+
+// ── Sauvegarde vidéo + rappel Calendar ───────────────────────────────────────
+
+function handleVideoUpload(data) {
+  var videoUrl = data.video_url;
+  var filename = data.filename || ("quote_" + new Date().toISOString().slice(0, 10) + ".mp4");
+  var caption  = data.caption  || "";
+
+  // 1. Télécharger depuis Cloudinary
+  var response = UrlFetchApp.fetch(videoUrl, { muteHttpExceptions: true });
+  if (response.getResponseCode() !== 200) {
+    return err("Téléchargement vidéo échoué : HTTP " + response.getResponseCode());
+  }
+  var blob = response.getBlob().setName(filename);
+
+  // 2. Déposer dans AI/Quotes AI/Video/
+  var folder = findOrCreatePath(["AI", "Quotes AI", "Video"]);
+  var file   = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  var driveUrl = "https://drive.google.com/uc?export=download&id=" + file.getId();
+
+  // 3. Créer événement Calendar dans 10 min, notification 5 min avant
+  var now       = new Date();
+  var startTime = new Date(now.getTime() + 10 * 60 * 1000);
+  var endTime   = new Date(startTime.getTime() + 15 * 60 * 1000);
+
+  var description = "📥 Télécharger la vidéo :\n" + driveUrl
+                  + "\n\n📝 Caption prête à coller :\n" + caption;
+
+  var cal   = CalendarApp.getDefaultCalendar();
+  var event = cal.createEvent("📱 Poster sur TikTok", startTime, endTime, {
+    description: description,
+  });
+  event.addPopupReminder(5);  // notification 5 min avant l'événement
+
+  return json({ status: "ok", drive_url: driveUrl, event_id: event.getId() });
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -93,10 +143,18 @@ function findFolder(name) {
 function findOrCreateFolder(name) {
   var folder = findFolder(name);
   if (folder) return folder;
-  // Créer dans le même dossier parent que "Littérature"
-  var lit = findFolder(FOLDER_NAME);
+  var lit    = findFolder(FOLDER_NAME);
   var parent = lit ? lit.getParents().next() : DriveApp.getRootFolder();
   return parent.createFolder(name);
+}
+
+function findOrCreatePath(names) {
+  var folder = DriveApp.getRootFolder();
+  for (var i = 0; i < names.length; i++) {
+    var subs = folder.getFoldersByName(names[i]);
+    folder = subs.hasNext() ? subs.next() : folder.createFolder(names[i]);
+  }
+  return folder;
 }
 
 function json(obj) {

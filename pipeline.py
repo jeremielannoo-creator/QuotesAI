@@ -24,6 +24,7 @@ from agents.agent_music     import select_music
 from agents.agent_render    import render_video, check_ffmpeg
 from agents.agent_publisher import publish_instagram, publish_tiktok
 from utils.video_host       import upload_video
+from utils.drive_uploader   import save_video_and_remind
 
 console = Console()
 
@@ -114,6 +115,13 @@ def run(
     # Upload sur Cloudinary (URL publique requise par Instagram)
     with console.status("[bold green]Agent 5/5 — Upload Cloudinary..."):
         public_url = upload_video(final_video)
+
+    # Sauvegarde Drive + rappel Calendar (pour posting TikTok manuel)
+    with console.status("[bold green]Agent 5/5 — Sauvegarde Drive + rappel Calendar..."):
+        from datetime import datetime
+        _filename = f"quote_{datetime.now().strftime('%Y-%m-%d_%H%M')}.mp4"
+        _caption  = f"{caption}\n{' '.join(hashtags)}"
+        save_video_and_remind(public_url, _filename, _caption)
 
     if platform in ("instagram", "both"):
         with console.status("[bold green]Agent 5/5 — Publication Instagram..."):
