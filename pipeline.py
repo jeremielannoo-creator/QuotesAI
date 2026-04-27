@@ -118,8 +118,7 @@ def run(
 
     # Sauvegarde Drive + rappel Calendar (pour posting TikTok manuel)
     with console.status("[bold green]Agent 5/5 — Sauvegarde Drive + rappel Calendar..."):
-        from datetime import datetime
-        _filename = f"quote_{datetime.now().strftime('%Y-%m-%d_%H%M')}.mp4"
+        _filename = f"quote_{started_at.strftime('%Y-%m-%d_%H%M')}.mp4"
         _caption  = f"{caption}\n{' '.join(hashtags)}"
         save_video_and_remind(public_url, _filename, _caption)
 
