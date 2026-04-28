@@ -76,6 +76,7 @@ jobs:
           INSTAGRAM_ACCESS_TOKEN:  ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID:       ${{ secrets.INSTAGRAM_USER_ID }}
           MAKE_TIKTOK_WEBHOOK_URL: ${{ secrets.MAKE_TIKTOK_WEBHOOK_URL }}
+          DRIVE_GAS_URL:           ${{ secrets.DRIVE_GAS_URL }}
         run: python pipeline.py --platform both
 
       # ── 8. Sauvegarder la DB (citation marquée comme publiée) ─────────────
