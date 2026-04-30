@@ -9,6 +9,7 @@ load_dotenv()
 
 # ── APIs ───────────────────────────────────────────────
 ANTHROPIC_API_KEY        = os.getenv("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY           = os.getenv("GEMINI_API_KEY", "")
 DRIVE_GAS_URL            = os.getenv("DRIVE_GAS_URL", "")
 HASHNODE_TOKEN           = os.getenv("HASHNODE_TOKEN", "")
 HASHNODE_PUBLICATION_ID  = os.getenv("HASHNODE_PUBLICATION_ID", "")
