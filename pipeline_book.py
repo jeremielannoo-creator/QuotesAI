@@ -61,7 +61,14 @@ def _get_article(article_path: str | None, drive_file: str | None) -> dict | Non
 
     # 3. Auto selon le jour courant (mercredi → B1, dimanche → B2)
     from utils.drive_reader import get_article_for_today
-    return get_article_for_today()
+    article = get_article_for_today()
+    if article:
+        return article
+
+    # 4. Fallback : génération via Claude API si Drive est vide
+    console.print("  [info] Drive vide — génération de l'article via Claude API...")
+    from agents.agent_article_gen import generate_article
+    return generate_article()
 
 
 def run(
