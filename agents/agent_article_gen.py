@@ -50,7 +50,7 @@ def generate_article() -> dict | None:
 
         print("  [agent_article_gen] Génération d'article via Gemini API...")
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.0-flash-lite",
             contents=_PROMPT,
             config=types.GenerateContentConfig(
                 system_instruction=_SYSTEM,
