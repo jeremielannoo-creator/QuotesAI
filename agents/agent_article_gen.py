@@ -2,9 +2,10 @@
 agents/agent_article_gen.py — Génération d'article de critique littéraire via Gemini API.
 
 Fallback utilisé par pipeline_book.py quand Google Drive ne contient pas d'article.
-Utilise google-generativeai (gratuit via Google AI Studio — aistudio.google.com).
+Utilise google-genai (nouveau SDK officiel Google — aistudio.google.com pour la clé).
 """
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from config import GEMINI_API_KEY
 
 _SYSTEM = """Tu es Ava, née le 31 octobre 2000, éditrice junior dans une maison indépendante parisienne spécialisée en littérature étrangère. Tu tiens depuis un blog littéraire The Journey of Ava où tu publies des retours de lecture personnels — jamais des critiques froides, toujours des confessions habitées.
@@ -41,20 +42,18 @@ def generate_article() -> dict | None:
     """
     if not GEMINI_API_KEY:
         print("  [agent_article_gen] GEMINI_API_KEY non configuré")
-        print("  [agent_article_gen] → Obtenir une clé gratuite sur aistudio.google.com")
+        print("  [agent_article_gen] → Clé gratuite sur aistudio.google.com")
         return None
 
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=_SYSTEM,
-        )
+        client = genai.Client(api_key=GEMINI_API_KEY)
 
         print("  [agent_article_gen] Génération d'article via Gemini API...")
-        response = model.generate_content(
-            _PROMPT,
-            generation_config=genai.GenerationConfig(
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=_PROMPT,
+            config=types.GenerateContentConfig(
+                system_instruction=_SYSTEM,
                 max_output_tokens=1500,
                 temperature=0.9,
             ),
