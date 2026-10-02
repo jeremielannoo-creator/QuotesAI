@@ -17,9 +17,10 @@ Le script tourne dans ton compte Google, accessible via une URL HTTPS.
 /**
  * QuotesAI — Drive Reader & Video Uploader
  *
- * GET  ?slot=B1&date=2026-04-23          →  retourne le contenu de l'article
- * POST {fileId: "..."}                   →  archive l'article dans Publiés/
- * POST {action:"video", video_url, ...}  →  sauvegarde vidéo + rappel Calendar
+ * GET  ?slot=B1&date=2026-04-23                     →  retourne le contenu de l'article
+ * POST {fileId: "..."}                              →  archive l'article dans Publiés/
+ * POST {action:"video", video_url, ...}             →  sauvegarde vidéo + rappel Calendar
+ * POST {action:"create", slot, date, content}       →  crée AAAA-MM-JJ-slot.md dans Littérature/
  */
 
 var FOLDER_NAME    = "Littérature";
@@ -80,6 +81,11 @@ function doPost(e) {
       return handleVideoUpload(data);
     }
 
+    // Création d'un article (slot B1/B2) dans Littérature/
+    if (data.action === "create") {
+      return handleArticleCreate(data);
+    }
+
     // Archive article dans Publiés/
     var fileId = data.fileId;
     if (!fileId) return err("fileId manquant");
@@ -94,6 +100,29 @@ function doPost(e) {
     return json({ status: "archived", name: file.getName() });
 
   } catch (e) { return err(e.toString()); }
+}
+
+// ── Création d'un article (B1/B2) dans Littérature/ ─────────────────────────
+
+function handleArticleCreate(data) {
+  var slot    = data.slot;       // 'B1' ou 'B2'
+  var date    = data.date;       // 'AAAA-MM-JJ'
+  var content = data.content;
+  if (!slot || !date || !content) return err("slot, date, content requis");
+
+  var folder = findFolder(FOLDER_NAME);
+  if (!folder) return err('Dossier "' + FOLDER_NAME + '" introuvable');
+
+  var name = date + '-' + slot + '.md';
+
+  // Idempotence : si un fichier de même nom existe déjà, on le corbeille avant
+  var existing = folder.searchFiles('title = "' + name + '" and trashed = false');
+  while (existing.hasNext()) existing.next().setTrashed(true);
+
+  var blob = Utilities.newBlob(content, 'text/markdown', name).setName(name);
+  var file = folder.createFile(blob);
+
+  return json({ status: "created", id: file.getId(), name: name });
 }
 
 // ── Sauvegarde vidéo + rappel Calendar ───────────────────────────────────────
