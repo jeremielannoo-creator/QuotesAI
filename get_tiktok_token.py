@@ -16,7 +16,7 @@ import os
 CLIENT_KEY    = "sbawqz0csa468gz8j1"
 CLIENT_SECRET = "KDQYGJOLnkyOq3zrMZDk3dq8EYsLMQ4u"
 REDIRECT_URI  = "https://jeremielannoo-creator.github.io/QuotesAI/"
-SCOPE         = "user.info.basic,video.publish"
+SCOPE         = "user.info.basic,video.upload,video.publish"
 ENVFILE       = os.path.join(os.path.dirname(__file__), ".env")
 
 # ── Étape 1 : Ouvrir le navigateur ─────────────────────────────────────────

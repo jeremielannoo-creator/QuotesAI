@@ -1,63 +1,81 @@
-name: QuotesAI — Publication quotidienne
+name: QuotesAI — Reels citations
+
+# ── Rythme ────────────────────────────────────────────────────────────────────
+# On est passé de 13 Reels/semaine à 5. Le compte publiait deux fois par jour un
+# format identique : la portée par post baisse, l'audience se lasse, et la base
+# de 985 citations s'épuisait en 5 mois. 5 Reels + 2 chroniques + 1 voyage +
+# 1 lifestyle = 9 publications hebdomadaires, quatre formats différents.
+#
+# Créneaux calés sur les créneaux réellement mesurés par agent_analytics, une
+# fois le signal passé au taux rapporté à la portée :
+#   best_hours_utc = [6, 21, 14, 13, 19, 17]  →  8h, 23h, 16h, 15h, 21h, 19h Paris
+# Ces mesures sont bruitées (26 abonnés, peu de posts par tranche horaire) et
+# se corrigeront d'elles-mêmes : agent_analytics tourne avant chaque
+# publication et réécrit db/mood_weights.json.
+#
+# Les créneaux sont définis en heure de Paris dans agents/agent_schedule.py
+# (SLOTS["reels"]). Chaque créneau a deux crons, UTC été + UTC hiver ; le job
+# « slot » ne laisse passer que celui qui tombe à la bonne heure de Paris.
+# Après modification de SLOTS : python -m agents.agent_schedule crons reels
 
 on:
   schedule:
-    # Toutes les heures sont en UTC (Paris été = UTC+2, hiver = UTC+1)
-    # Lundi 07h30 Paris (été) → 05h30 UTC
-    - cron: '30 5 * * 1'
-    # Lundi 18h15 Paris (été) → 16h15 UTC
-    - cron: '15 16 * * 1'
-    # Mardi, Mercredi, Jeudi 12h10 Paris (été) → 10h10 UTC
-    - cron: '10 10 * * 2'
-    - cron: '10 10 * * 3'
-    - cron: '10 10 * * 4'
-    # Mardi, Mercredi, Jeudi 19h45 Paris (été) → 17h45 UTC — Décompression
-    - cron: '45 17 * * 2'
-    - cron: '45 17 * * 3'
-    - cron: '45 17 * * 4'
-    # Vendredi 17h00 Paris (été) → 15h00 UTC
-    - cron: '0 15 * * 5'
-    # Samedi 10h00 Paris (été) → 08h00 UTC
-    - cron: '0 8 * * 6'
-    # Samedi 18h00 Paris (été) → 16h00 UTC — Profite de la vie
-    - cron: '0 16 * * 6'
-    # Dimanche 21h00 Paris (été) → 19h00 UTC
-    - cron: '0 19 * * 0'
-  workflow_dispatch:   # Déclenchement manuel depuis l'onglet Actions
+    - cron: '0 6 * * 1'   # mon 08:00 Paris (été)
+    - cron: '0 7 * * 1'   # mon 08:00 Paris (hiver)
+    - cron: '0 17 * * 2'   # tue 19:00 Paris (été)
+    - cron: '0 18 * * 2'   # tue 19:00 Paris (hiver)
+    - cron: '0 14 * * 6'   # sat 16:00 Paris (été)
+    - cron: '0 15 * * 6'   # sat 16:00 Paris (hiver)
+    - cron: '0 19 * * 6'   # sat 21:00 Paris (été)
+    - cron: '0 20 * * 6'   # sat 21:00 Paris (hiver)
+    - cron: '0 21 * * 0'   # sun 23:00 Paris (été)
+    - cron: '0 22 * * 0'   # sun 23:00 Paris (hiver)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry-run : rendre la vidéo sans publier'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
+  slot:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        run: python3 -m agents.agent_schedule gate reels "${{ github.event.schedule }}"
+
   post:
+    needs: slot
+    if: needs.slot.outputs.go == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Nécessaire pour committer la DB mise à jour
+      contents: write  # Nécessaire pour committer la DB et la mémoire
 
     steps:
-      # ── 1. Récupérer le code ───────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 2. Python ─────────────────────────────────────────────────────────
       - name: Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
 
-      # ── 3. FFmpeg ─────────────────────────────────────────────────────────
       - name: FFmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
 
-      # ── 4. Dépendances Python ─────────────────────────────────────────────
       - name: Dépendances
         run: pip install -r requirements.txt
 
-      # ── 5. Polices (téléchargées si absentes du repo) ─────────────────────
       - name: Polices
         run: python setup_fonts.py
 
-      # ── 6. Base de données (import initial si absente) ────────────────────
       - name: Initialiser la DB si absente
         run: |
           if [ ! -f db/quotes.db ]; then
@@ -65,9 +83,17 @@ jobs:
             python import_quotes.py
           fi
 
-      # ── 7. Pipeline principal ─────────────────────────────────────────────
+      # Boucle d'apprentissage : recalcule les poids par mood avant de publier
+      - name: Analytics — recalcul des poids par mood
+        continue-on-error: true
+        env:
+          INSTAGRAM_ACCESS_TOKEN:  ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID:       ${{ secrets.INSTAGRAM_USER_ID }}
+        run: python -m agents.agent_analytics
+
       - name: Lancer le pipeline
         env:
+          GEMINI_API_KEY:          ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY:          ${{ secrets.PEXELS_API_KEY }}
           PIXABAY_API_KEY:         ${{ secrets.PIXABAY_API_KEY }}
           CLOUDINARY_CLOUD_NAME:   ${{ secrets.CLOUDINARY_CLOUD_NAME }}
@@ -75,15 +101,32 @@ jobs:
           CLOUDINARY_API_SECRET:   ${{ secrets.CLOUDINARY_API_SECRET }}
           INSTAGRAM_ACCESS_TOKEN:  ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID:       ${{ secrets.INSTAGRAM_USER_ID }}
+          FACEBOOK_PAGE_ID:        ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_TOKEN:     ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+          TIKTOK_ACCESS_TOKEN:     ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_REFRESH_TOKEN:    ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          TIKTOK_OPEN_ID:          ${{ secrets.TIKTOK_OPEN_ID }}
           MAKE_TIKTOK_WEBHOOK_URL: ${{ secrets.MAKE_TIKTOK_WEBHOOK_URL }}
           DRIVE_GAS_URL:           ${{ secrets.DRIVE_GAS_URL }}
-        run: python pipeline.py --platform both
+          # Génération de fonds text-to-video : laissé à 0.
+          # Voir agents/agent_video_ai.py pour l'activer.
+          VIDEO_AI_ENABLED:        ${{ vars.VIDEO_AI_ENABLED }}
+          VIDEO_AI_MODEL:          ${{ vars.VIDEO_AI_MODEL }}
+          HF_TOKEN:                ${{ secrets.HF_TOKEN }}
+        run: |
+          ARGS="--platform both"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python pipeline.py $ARGS
 
-      # ── 8. Sauvegarder la DB (citation marquée comme publiée) ─────────────
-      - name: Commit DB mise à jour
+      # db/state.json porte la mémoire anti-répétition : fonds déjà utilisés,
+      # hashtags des derniers posts, livres déjà proposés. Sans ce commit, le
+      # bot repart de zéro à chaque run et répète tout.
+      - name: Commit DB + mémoire
         run: |
           git config user.email "quotesai-bot@github.com"
           git config user.name  "QuotesAI Bot"
-          git add db/quotes.db
-          git diff --staged --quiet || git commit -m "chore: citation publiée [skip ci]"
+          git add db/quotes.db db/mood_weights.json db/state.json
+          git diff --staged --quiet || git commit -m "chore: citation publiée + mémoire MAJ [skip ci]"
           git push
