@@ -7,6 +7,7 @@ Utilise google-genai (nouveau SDK officiel Google — aistudio.google.com pour l
 from google import genai
 from google.genai import types
 from config import GEMINI_API_KEY
+from utils import state
 
 _SYSTEM = """Tu es Ava, née le 31 octobre 2000, éditrice junior dans une maison indépendante parisienne spécialisée en littérature étrangère. Tu tiens depuis un blog littéraire The Journey of Ava où tu publies des retours de lecture personnels — jamais des critiques froides, toujours des confessions habitées.
 
@@ -23,7 +24,7 @@ Ne jamais résumer l'intrigue. Donner envie, pas informer.
 Éviter absolument : "un roman bouleversant", "une plume magnifique", "un chef-d'œuvre incontournable"."""
 
 _PROMPT = """Choisis un livre parmi : classiques français ou anglo-saxons, grands romans populaires adaptés au cinéma ou à la télévision, romans contemporains à succès bien écrits.
-
+{exclusions}
 Rédige directement le retour de lecture dans la voix d'Ava, sans préambule ni explication de méthode. 600 à 900 mots.
 
 Format strict de ta réponse — respecte exactement ces deux premières lignes :
@@ -31,42 +32,64 @@ Titre du livre — Prénom Nom de l'auteur
 
 [corps de la critique, commence directement]"""
 
+MAX_ATTEMPTS = 3
+
+
+def _exclusions_block() -> str:
+    """Liste des livres déjà chroniqués, à ne pas reproposer."""
+    titles = [f"« {b['title'] } »" for b in state.featured_books()]
+    if not titles:
+        return ""
+    return ("\nINTERDIT — ces livres ont déjà été chroniqués sur le compte, "
+            "n'en choisis aucun :\n" + ", ".join(titles) + "\n")
+
 
 def generate_article() -> dict | None:
     """
     Génère un article de critique littéraire avec Gemini API (gratuit).
 
+    Le livre est vérifié contre l'historique des chroniques déjà publiées
+    (utils.state) : les titres déjà traités sont interdits dans le prompt, et
+    si le modèle en repropose un malgré tout, on relance.
+
     Returns:
         dict avec keys : title, author, body, raw, slug, file_path
-        None en cas d'erreur
+        None en cas d'erreur ou si aucun livre inédit n'a pu être obtenu
     """
     if not GEMINI_API_KEY:
         print("  [agent_article_gen] GEMINI_API_KEY non configuré")
         print("  [agent_article_gen] → Clé gratuite sur aistudio.google.com")
         return None
 
-    try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
+    from agents.agent_article import parse_article_from_text
 
-        print("  [agent_article_gen] Génération d'article via Gemini API...")
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            contents=_PROMPT,
-            config=types.GenerateContentConfig(
-                system_instruction=_SYSTEM,
-                max_output_tokens=1500,
-                temperature=0.9,
-            ),
-        )
+    prompt = _PROMPT.format(exclusions=_exclusions_block())
 
-        text = response.text.strip()
-        print(f"  [agent_article_gen] ✓ Article généré ({len(text)} caractères)")
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            client = genai.Client(api_key=GEMINI_API_KEY)
+            print(f"  [agent_article_gen] Génération via Gemini ({attempt}/{MAX_ATTEMPTS})...")
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-lite",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=_SYSTEM,
+                    max_output_tokens=1500,
+                    temperature=0.9,
+                ),
+            )
+            article = parse_article_from_text(response.text.strip(),
+                                              source_name="gemini-generated")
+        except Exception as e:
+            print(f"  [agent_article_gen] Erreur : {e}")
+            return None
 
-        from agents.agent_article import parse_article_from_text
-        article = parse_article_from_text(text, source_name="gemini-generated")
+        if state.is_book_featured(article["title"], article["author"]):
+            print(f"  [agent_article_gen] « {article['title']} » déjà chroniqué — on relance")
+            continue
+
         print(f"  [agent_article_gen] ✓ « {article['title']} » — {article['author']}")
         return article
 
-    except Exception as e:
-        print(f"  [agent_article_gen] Erreur : {e}")
-        return None
+    print(f"  [agent_article_gen] Aucun livre inédit après {MAX_ATTEMPTS} tentatives")
+    return None

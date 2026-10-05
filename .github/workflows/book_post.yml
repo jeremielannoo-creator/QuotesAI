@@ -1,11 +1,13 @@
 name: QuotesAI — Pipeline Livre
 
 on:
+  # Créneaux en heure de Paris : SLOTS["book"] dans agents/agent_schedule.py.
+  # Deux crons par créneau (UTC été / hiver), le job « slot » choisit le bon.
   schedule:
-    # Mercredi 19h00 Paris (CEST = UTC+2)  →  17h00 UTC
-    - cron: '0 17 * * 3'
-    # Dimanche 10h30 Paris (CEST = UTC+2)  →  08h30 UTC
-    - cron: '30 8 * * 0'
+    - cron: '0 17 * * 3'   # wed 19:00 Paris (été)
+    - cron: '0 18 * * 3'   # wed 19:00 Paris (hiver)
+    - cron: '30 8 * * 0'   # sun 10:30 Paris (été)
+    - cron: '30 9 * * 0'   # sun 10:30 Paris (hiver)
   workflow_dispatch:   # Déclenchement manuel depuis l'onglet Actions
     inputs:
       drive_file:
@@ -19,13 +21,28 @@ on:
         default: false
 
 jobs:
-  publish:
+  slot:
     runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        run: python3 -m agents.agent_schedule gate book "${{ github.event.schedule }}"
+
+  publish:
+    needs: slot
+    if: needs.slot.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # commit de db/state.json (historique des livres)
 
     steps:
       # ── 1. Code ───────────────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── 2. Python ─────────────────────────────────────────────────────────
       - name: Python 3.11
@@ -72,3 +89,13 @@ jobs:
             ARGS="$ARGS --dry-run"
           fi
           python pipeline_book.py $ARGS
+
+      # L'historique des livres chroniqués vit dans db/state.json : sans ce
+      # commit, le contrôle anti-doublon repart de zéro à chaque exécution.
+      - name: Commit mémoire des livres
+        run: |
+          git config user.email "quotesai-bot@github.com"
+          git config user.name  "QuotesAI Bot"
+          git add db/state.json
+          git diff --staged --quiet || git commit -m "chore: livre chroniqué [skip ci]"
+          git push
