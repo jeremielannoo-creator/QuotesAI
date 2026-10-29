@@ -1,0 +1,104 @@
+name: QuotesAI — Voyage & lifestyle
+
+# Deux créneaux, deux formats :
+#   Jeudi 15h Paris    → voyage (jour le plus faible du compte : on y met le
+#                        format le plus « sauvegardable », des conseils utiles)
+#   Vendredi 19h Paris → tenue ou adresse, tiré au sort
+#
+# Ces posts montrent Ava, qui est un personnage de fiction : la légende porte
+# systématiquement config.AI_DISCLOSURE et le hashtag #contenugenereparia.
+
+#
+# Créneaux en heure de Paris : SLOTS["lifestyle"] dans agents/agent_schedule.py.
+# Deux crons par créneau (UTC été / hiver), le job « slot » choisit le bon.
+
+on:
+  schedule:
+    - cron: '0 13 * * 4'   # thu 15:00 Paris (été)  — voyage
+    - cron: '0 14 * * 4'   # thu 15:00 Paris (hiver) — voyage
+    - cron: '0 17 * * 5'   # fri 19:00 Paris (été)  — tenue ou adresse
+    - cron: '0 18 * * 5'   # fri 19:00 Paris (hiver) — tenue ou adresse
+  workflow_dispatch:
+    inputs:
+      post_type:
+        description: 'Type de post'
+        type: choice
+        options: [mix, outfit, place, travel]
+        required: false
+        default: mix
+      city:
+        description: 'Ville (Paris, Lille, Londres, Bruxelles, Anvers, Amsterdam)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry-run : affiche la légende sans publier'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  slot:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        run: python3 -m agents.agent_schedule gate lifestyle "${{ github.event.schedule }}"
+
+  publish:
+    needs: slot
+    if: needs.slot.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Dépendances
+        run: pip install -r requirements.txt
+
+      - name: Lancer le pipeline
+        env:
+          GEMINI_API_KEY:         ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_IMAGE_MODEL:     ${{ vars.GEMINI_IMAGE_MODEL }}
+          CLOUDINARY_CLOUD_NAME:  ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY:     ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:  ${{ secrets.CLOUDINARY_API_SECRET }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID:      ${{ secrets.INSTAGRAM_USER_ID }}
+          FACEBOOK_PAGE_ID:       ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_TOKEN:    ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+        run: |
+          # Le jeudi c'est voyage, le vendredi tenue ou adresse.
+          case "${{ github.event.schedule }}" in
+            "0 13 * * 4"|"0 14 * * 4") TYPE="travel" ;;
+            "0 17 * * 5"|"0 18 * * 5") TYPE="mix" ;;
+            *)            TYPE="${{ github.event.inputs.post_type }}" ;;
+          esac
+          ARGS="--type ${TYPE:-mix}"
+          if [ -n "${{ github.event.inputs.city }}" ]; then
+            ARGS="$ARGS --city ${{ github.event.inputs.city }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python pipeline_lifestyle.py $ARGS
+
+      - name: Commit mémoire
+        run: |
+          git config user.email "quotesai-bot@github.com"
+          git config user.name  "QuotesAI Bot"
+          git add db/state.json
+          git diff --staged --quiet || git commit -m "chore: post lifestyle publié [skip ci]"
+          git push
