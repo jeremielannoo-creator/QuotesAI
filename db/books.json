@@ -1,0 +1,69 @@
+{
+  "_readme": [
+    "Catalogue des livres poussés en CTA sous les Reels citations.",
+    "Édite librement : remplace 'url' par le lien de ta chronique, de ta page",
+    "de vente ou de ton lien affilié. Si 'url' est vide, le CTA renvoie vers",
+    "'default_cta' (le lien en bio).",
+    "'moods' doit reprendre les humeurs de la base de citations :",
+    "calm | warm | melancholic | contemplative | energetic | triumphant"
+  ],
+  "default_cta": "Le lien est en bio.",
+  "books": [
+    {
+      "title": "Hamnet",
+      "author": "Maggie O'Farrell",
+      "url": "",
+      "pitch": "un deuil raconté par les objets, les odeurs, les gestes — jamais par les grands mots",
+      "moods": ["melancholic", "contemplative"]
+    },
+    {
+      "title": "Les Vestiges du jour",
+      "author": "Kazuo Ishiguro",
+      "url": "",
+      "pitch": "l'histoire d'un homme qui comprend trente ans trop tard ce qu'il a laissé passer",
+      "moods": ["melancholic", "contemplative"]
+    },
+    {
+      "title": "Gatsby le Magnifique",
+      "author": "F. Scott Fitzgerald",
+      "url": "",
+      "pitch": "ce que ça coûte de vouloir refaire le passé à l'identique",
+      "moods": ["melancholic", "energetic"]
+    },
+    {
+      "title": "Mrs Dalloway",
+      "author": "Virginia Woolf",
+      "url": "",
+      "pitch": "une seule journée, et dessous tout ce qu'une vie n'a pas dit",
+      "moods": ["contemplative", "calm"]
+    },
+    {
+      "title": "La Route",
+      "author": "Cormac McCarthy",
+      "url": "",
+      "pitch": "ce qui reste d'un père quand il ne reste plus rien d'autre",
+      "moods": ["triumphant", "melancholic"]
+    },
+    {
+      "title": "Orgueil et Préjugés",
+      "author": "Jane Austen",
+      "url": "",
+      "pitch": "l'art de changer d'avis sur quelqu'un — et sur soi",
+      "moods": ["warm", "calm"]
+    },
+    {
+      "title": "Crime et Châtiment",
+      "author": "Fiodor Dostoïevski",
+      "url": "",
+      "pitch": "un homme qui se croit au-dessus de la règle et découvre le prix du silence",
+      "moods": ["energetic", "triumphant"]
+    },
+    {
+      "title": "Les Vagues",
+      "author": "Virginia Woolf",
+      "url": "",
+      "pitch": "six voix, une vie, et la sensation exacte du temps qui passe",
+      "moods": ["calm", "contemplative"]
+    }
+  ]
+}

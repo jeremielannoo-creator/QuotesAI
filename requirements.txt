@@ -7,3 +7,6 @@ cloudinary>=1.40.0
 rich>=13.7.0
 anthropic>=0.40.0
 google-genai>=1.0.0
+# Fonds vidéo text-to-video (agents/agent_video_ai.py) — inactif tant que
+# VIDEO_AI_ENABLED=0, mais la dépendance est légère et évite un échec au runtime.
+huggingface_hub>=0.30.0

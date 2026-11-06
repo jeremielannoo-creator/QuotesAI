@@ -33,6 +33,7 @@ from agents.agent_article       import parse_article
 from agents.agent_book_cover    import get_book_cover
 from agents.agent_social_writer import generate_social_posts
 from agents.agent_blog          import publish_to_hashnode
+from utils                      import state
 from utils.video_host           import upload_video
 
 console = Console()
@@ -76,6 +77,7 @@ def run(
     drive_file:   str | None = None,
     platform:     str        = "all",
     dry_run:      bool       = False,
+    force:        bool       = False,
 ):
     started_at = time.time()
     results    = {"blog": None, "instagram": None, "tiktok": None, "facebook": None}
@@ -93,6 +95,15 @@ def run(
 
     if not article:
         console.print("[yellow]Aucun article à publier aujourd'hui.[/yellow]")
+        return results
+
+    # ── 1 bis. Le livre a-t-il déjà été proposé ? ─────────────────────────────
+    if state.is_book_featured(article["title"], article["author"]) and not force:
+        console.print(
+            f"[yellow]« {article['title']} » a déjà été chroniqué "
+            f"— publication annulée.[/yellow]\n"
+            f"[dim]Forcer quand même : --force[/dim]"
+        )
         return results
 
     console.print(f"  ✓ Article : [bold]{article['title']}[/bold] — {article['author']}")
@@ -127,8 +138,10 @@ def run(
                 console.print(f"  ✗ [red]Hashnode : {e}[/red]")
 
     # ── 5. Formatage des posts sociaux ────────────────────────────────────────
+    # Après l'étape blog : si la publication a réussi, le CTA porte l'URL réelle,
+    # sinon il renvoie vers la bio. Aucun marqueur à substituer plus tard.
     with console.status("[bold]Formatage des posts..."):
-        posts = generate_social_posts(article)
+        posts = generate_social_posts(article, blog_url=results.get("blog"))
 
     console.print("  ✓ Posts formatés")
 
@@ -190,17 +203,18 @@ def run(
         with console.status("[bold]Publication Facebook..."):
             try:
                 from agents.agent_publisher import publish_facebook
-                fb_post = posts.get("facebook_post", "")
-                if results.get("blog"):
-                    fb_post = fb_post.replace("[LIEN]", results["blog"])
-                post_id = publish_facebook(cover_url, fb_post)
+                post_id = publish_facebook(cover_url, posts.get("facebook_post", ""))
                 results["facebook"] = post_id
                 console.print(f"  ✓ [bold green]Facebook publié[/bold green] — ID : {post_id}")
             except Exception as e:
                 console.print(f"  ✗ [red]Facebook : {e}[/red]")
 
-    # ── 9. Archivage Drive ────────────────────────────────────────────────────
+    # ── 9. Mémoire + archivage Drive ─────────────────────────────────────────
     published_count = sum(1 for v in results.values() if v)
+    if published_count > 0:
+        # Le livre entre dans l'historique : il ne sera plus jamais reproposé.
+        state.remember_book(article["title"], article["author"])
+
     if published_count > 0 and article.get("_drive_file_id"):
         with console.status("[bold]Archivage Drive..."):
             try:
@@ -236,10 +250,13 @@ if __name__ == "__main__":
                         default="all")
     parser.add_argument("--dry-run",   action="store_true",
                         help="Affiche les posts sans publier")
+    parser.add_argument("--force",     action="store_true",
+                        help="Publier même si le livre a déjà été chroniqué")
     args = parser.parse_args()
     run(
         article_path=args.article,
         drive_file=args.drive_file,
         platform=args.platform,
         dry_run=args.dry_run,
+        force=args.force,
     )

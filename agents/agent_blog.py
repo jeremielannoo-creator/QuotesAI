@@ -49,7 +49,19 @@ def publish_to_hashnode(
             "Content-Type":  "application/json",
         },
         timeout=30,
+        # Sans ça, le 301 de gql.hashnode.com est suivi jusqu'à une page web et
+        # resp.json() lève « Expecting value: line 1 column 1 » — l'erreur qui
+        # masquait le vrai problème dans les logs.
+        allow_redirects=False,
     )
+
+    if resp.is_redirect or "json" not in (resp.headers.get("content-type") or ""):
+        raise RuntimeError(
+            "L'API GraphQL Hashnode n'est plus accessible : elle a été réservée "
+            "aux publications Pro. L'endpoint redirige vers la page d'annonce "
+            "au lieu de répondre. Voir https://hashnode.com/announcements/graphql-api"
+        )
+
     data = resp.json()
     if "errors" in data:
         raise RuntimeError(f"Hashnode : {data['errors']}")
