@@ -88,6 +88,44 @@ def publish_instagram_carousel(image_urls: list[str], caption: str) -> str:
     return media_id
 
 
+def publish_instagram_image(image_url: str, caption: str) -> str:
+    """
+    Publie une image simple (post carré/portrait) sur Instagram.
+
+    Args:
+        image_url: URL publique HTTPS (Cloudinary)
+        caption:   texte complet, hashtags compris
+
+    Returns:
+        ID du média publié
+    """
+    print("  [instagram] Création du conteneur image…")
+    resp = requests.post(
+        f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media",
+        data={
+            "image_url":    image_url,
+            "caption":      caption,
+            "access_token": INSTAGRAM_ACCESS_TOKEN,
+        },
+        timeout=30,
+    )
+    if not resp.ok:
+        raise RuntimeError(f"Instagram image {resp.status_code} — {resp.json()}")
+    container_id = resp.json()["id"]
+
+    print("  [instagram] Publication de l'image…")
+    resp = requests.post(
+        f"{_IG_BASE}/{INSTAGRAM_USER_ID}/media_publish",
+        data={"creation_id": container_id, "access_token": INSTAGRAM_ACCESS_TOKEN},
+        timeout=30,
+    )
+    if not resp.ok:
+        raise RuntimeError(f"Instagram publish {resp.status_code} — {resp.json()}")
+    media_id = resp.json()["id"]
+    print(f"  [instagram] ✓ Image publiée ! ID : {media_id}")
+    return media_id
+
+
 def publish_instagram(video_url: str, caption: str, hashtags: list[str]) -> str:
     """
     Publie un Reel sur Instagram.
@@ -182,10 +220,13 @@ def _wait_ig_container(
 
 def publish_tiktok(video_path: str, caption: str, hashtags: list[str]) -> str:
     """
-    Publie une vidéo sur TikTok via un webhook Make.com.
+    Publie une vidéo sur TikTok via la Content Posting API v2 (upload direct du
+    fichier, aucune URL publique requise).
 
-    Make est une plateforme approuvée par TikTok — elle gère le posting.
-    Le pipeline uploade la vidéo sur Cloudinary puis envoie l'URL au webhook.
+    Deux modes selon config.TIKTOK_AUDITED :
+      • False (défaut, app non auditée) → BROUILLON : la vidéo arrive dans
+        l'inbox TikTok, l'utilisateur ajoute la légende et publie en 1 tap.
+      • True  (app auditée)            → publication PUBLIQUE directe et 100% auto.
 
     Args:
         video_path: Chemin local vers le fichier MP4
@@ -193,33 +234,104 @@ def publish_tiktok(video_path: str, caption: str, hashtags: list[str]) -> str:
         hashtags:   Liste de hashtags
 
     Returns:
-        "make-triggered"
+        Le publish_id retourné par TikTok
     """
-    from config import MAKE_TIKTOK_WEBHOOK_URL
-    from utils.video_host import upload_video
+    from config import TIKTOK_ACCESS_TOKEN, TIKTOK_AUDITED
+    from utils.tiktok_refresh import refresh_tiktok_token
 
-    if not MAKE_TIKTOK_WEBHOOK_URL:
-        raise RuntimeError("MAKE_TIKTOK_WEBHOOK_URL non configuré dans .env / secrets GitHub")
+    # Renouvelle l'access_token (valable 24h) via le refresh_token si dispo
+    token = refresh_tiktok_token() or TIKTOK_ACCESS_TOKEN
+    if not token:
+        raise RuntimeError(
+            "Aucun token TikTok. Lance : python get_tiktok_token.py"
+        )
 
-    full_caption = f"{caption}\n{' '.join(hashtags)}"
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"Vidéo introuvable : {video_path}")
 
-    print("  [tiktok/make] Upload vidéo sur Cloudinary...")
-    video_url = upload_video(video_path)
+    if TIKTOK_AUDITED:
+        full_caption = f"{caption}\n{' '.join(hashtags)}"[:2200]
+        return _tiktok_direct_post(token, video_path, full_caption)
+    return _tiktok_inbox_upload(token, video_path)
 
-    print("  [tiktok/make] Envoi au webhook Make...")
+
+def _tiktok_init(token: str, endpoint: str, body: dict) -> dict:
+    """Appelle un endpoint /init/ TikTok et retourne le champ `data`."""
     resp = requests.post(
-        MAKE_TIKTOK_WEBHOOK_URL,
-        json={
-            "video_url": video_url,
-            "caption":   full_caption[:2200],
+        f"{_TIKTOK_BASE}{endpoint}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type":  "application/json; charset=UTF-8",
         },
+        json=body,
         timeout=30,
     )
-    if not resp.ok:
-        raise RuntimeError(f"Make webhook {resp.status_code} — {resp.text[:200]}")
+    data = resp.json()
+    if not resp.ok or data.get("error", {}).get("code", "ok") not in ("ok", None):
+        raise RuntimeError(f"TikTok init {resp.status_code} — {data}")
+    return data["data"]
 
-    print("  [tiktok/make] ✓ Vidéo transmise à Make pour publication TikTok")
-    return "make-triggered"
+
+def _tiktok_put_file(upload_url: str, video_path: str, size: int):
+    """Envoie le fichier vidéo en un seul chunk vers l'upload_url TikTok."""
+    with open(video_path, "rb") as f:
+        data = f.read()
+    resp = requests.put(
+        upload_url,
+        headers={
+            "Content-Type":  "video/mp4",
+            "Content-Range": f"bytes 0-{size - 1}/{size}",
+        },
+        data=data,
+        timeout=120,
+    )
+    if not resp.ok:
+        raise RuntimeError(f"TikTok upload {resp.status_code} — {resp.text[:200]}")
+
+
+def _tiktok_inbox_upload(token: str, video_path: str) -> str:
+    """Envoie la vidéo dans l'inbox TikTok (brouillon) — sans audit requis."""
+    size = os.path.getsize(video_path)
+    print("  [tiktok] Init upload brouillon (inbox)...")
+    data = _tiktok_init(token, "/post/publish/inbox/video/init/", {
+        "source_info": {
+            "source":            "FILE_UPLOAD",
+            "video_size":        size,
+            "chunk_size":        size,
+            "total_chunk_count": 1,
+        },
+    })
+    print("  [tiktok] Upload du fichier...")
+    _tiktok_put_file(data["upload_url"], video_path, size)
+    publish_id = data.get("publish_id", "")
+    print(f"  [tiktok] ✓ Vidéo en brouillon TikTok (à publier depuis l'app) — {publish_id}")
+    return publish_id
+
+
+def _tiktok_direct_post(token: str, video_path: str, caption: str) -> str:
+    """Publication publique directe — nécessite une app auditée (video.publish)."""
+    size = os.path.getsize(video_path)
+    print("  [tiktok] Init publication publique directe...")
+    data = _tiktok_init(token, "/post/publish/video/init/", {
+        "post_info": {
+            "title":                 caption,
+            "privacy_level":         "PUBLIC_TO_EVERYONE",
+            "disable_comment":       False,
+            "disable_duet":          False,
+            "disable_stitch":        False,
+        },
+        "source_info": {
+            "source":            "FILE_UPLOAD",
+            "video_size":        size,
+            "chunk_size":        size,
+            "total_chunk_count": 1,
+        },
+    })
+    print("  [tiktok] Upload du fichier...")
+    _tiktok_put_file(data["upload_url"], video_path, size)
+    publish_id = data.get("publish_id", "")
+    print(f"  [tiktok] ✓ Publication TikTok lancée — {publish_id}")
+    return publish_id
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -252,3 +364,40 @@ def publish_facebook(image_url: str, message: str) -> str:
     post_id = resp.json().get("post_id") or resp.json().get("id", "")
     print(f"  [facebook] ✓ Post publié ! ID : {post_id}")
     return post_id
+
+
+def publish_facebook_video(video_url: str, description: str) -> str:
+    """
+    Publie une vidéo sur la Page Facebook depuis une URL publique (Cloudinary).
+
+    C'est le pendant automatique du « partage sur Facebook » d'Instagram : le
+    Reel publié sur Instagram est aussi posté sur la Page, avec la même légende.
+    Le crosspost natif d'Instagram (Paramètres → Partage sur d'autres apps) est
+    un réglage d'interface qu'aucune API n'expose — cette fonction fait le
+    travail côté serveur, sans dépendre de ce réglage.
+
+    Args:
+        video_url:   URL publique HTTPS du MP4
+        description: Texte du post (légende + hashtags)
+
+    Returns:
+        ID de la vidéo publiée
+    """
+    if not FACEBOOK_PAGE_ID or not FACEBOOK_PAGE_TOKEN:
+        raise RuntimeError("FACEBOOK_PAGE_ID / FACEBOOK_PAGE_TOKEN manquants")
+
+    print("  [facebook] Publication de la vidéo sur la Page...")
+    resp = requests.post(
+        f"https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/videos",
+        data={
+            "file_url":     video_url,
+            "description":  description,
+            "access_token": FACEBOOK_PAGE_TOKEN,
+        },
+        timeout=120,
+    )
+    if not resp.ok:
+        raise RuntimeError(f"Facebook vidéo {resp.status_code} — {resp.json()}")
+    video_id = resp.json().get("id", "")
+    print(f"  [facebook] ✓ Vidéo publiée ! ID : {video_id}")
+    return video_id
