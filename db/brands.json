@@ -1,0 +1,92 @@
+{
+  "_readme": [
+    "Marques mises en avant dans les posts 'tenue'.",
+    "",
+    "handle    : @ officiel, relevé le 2026-08-04 dans le pied de page du site",
+    "            de chaque marque (pas depuis un moteur de recherche).",
+    "url       : lien publié sous le post. Pointe ici vers le site officiel.",
+    "            Remplace-le par ton lien d'affiliation quand tu en auras un.",
+    "affiliate : passe à true UNIQUEMENT si 'url' est un lien rémunéré. La",
+    "            mention de partenariat est alors ajoutée automatiquement à la",
+    "            légende — elle est obligatoire en France, Belgique, Pays-Bas et",
+    "            au Royaume-Uni. La mettre à true avec un lien non rémunéré",
+    "            serait faux, l'inverse est une infraction.",
+    "pieces    : pièces plausibles pour cette marque, utilisées dans le prompt image."
+  ],
+  "brands": [
+    {
+      "name": "Sézane",
+      "handle": "@sezane",
+      "url": "https://www.sezane.com/fr",
+      "affiliate": false,
+      "hashtags": ["#sezane", "#modeparisienne", "#stylefrancais"],
+      "pieces": ["a cream knitted cardigan over a silk slip dress",
+                 "a straight-cut trench coat and leather ballet flats",
+                 "a striped cotton shirt tucked into high-waisted jeans"]
+    },
+    {
+      "name": "SAAJ Paris",
+      "handle": "@saaj_paris",
+      "url": "https://saajparis.com",
+      "affiliate": false,
+      "hashtags": ["#saaj", "#saajparis", "#slowfashion"],
+      "pieces": ["a fluid linen set in sand tones",
+                 "an oversized knit in undyed cotton",
+                 "a wrap dress in a soft printed fabric"]
+    },
+    {
+      "name": "Des Petits Hauts",
+      "handle": "@despetitshauts",
+      "url": "https://www.despetitshauts.com",
+      "affiliate": false,
+      "hashtags": ["#despetitshauts", "#modefeminine", "#lookdujour"],
+      "pieces": ["a glittery-thread mohair jumper",
+                 "a floral midi dress with a fine gold belt"]
+    },
+    {
+      "name": "Sessùn",
+      "handle": "@sessun",
+      "url": "https://fr.sessun.com",
+      "affiliate": false,
+      "hashtags": ["#sessun", "#modeethique", "#styleparisien"],
+      "pieces": ["a hand-embroidered wool jacket",
+                 "a long pleated skirt with leather boots"]
+    },
+    {
+      "name": "Rouje",
+      "handle": "@rouje",
+      "url": "https://www.rouje.com/fr/",
+      "affiliate": false,
+      "hashtags": ["#rouje", "#frenchgirlstyle", "#parisienne"],
+      "pieces": ["a deep V-neck printed dress",
+                 "a fitted blazer over a lace camisole"]
+    },
+    {
+      "name": "Balzac Paris",
+      "handle": "@balzacparis",
+      "url": "https://balzac-paris.com",
+      "affiliate": false,
+      "hashtags": ["#balzacparis", "#moderesponsable", "#dressingminimaliste"],
+      "pieces": ["a boxy wool coat in ecru",
+                 "a cotton poplin shirt dress"]
+    },
+    {
+      "name": "Soeur",
+      "handle": "@soeur_paris",
+      "url": "https://www.soeur.fr",
+      "affiliate": false,
+      "hashtags": ["#soeurparis", "#vestiaireminimaliste", "#modeparisienne"],
+      "pieces": ["straight tailored trousers with a fine roll-neck",
+                 "a short quilted jacket over a pleated dress"]
+    },
+    {
+      "name": "American Vintage",
+      "handle": "@americanvintage_officiel",
+      "url": "https://www.americanvintage-store.com/fr_fr/",
+      "affiliate": false,
+      "hashtags": ["#americanvintage", "#basiquesdequalite", "#stylecasual"],
+      "pieces": ["a washed cotton oversized t-shirt with wide trousers",
+                 "a soft ribbed knit in faded pink"]
+    }
+  ]
+}
