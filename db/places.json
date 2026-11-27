@@ -1,0 +1,275 @@
+{
+  "_readme": [
+    "Cafés, bars et restaurants du circuit d'Ava — sélection 25-35 ans.",
+    "",
+    "Les institutions ont été retirées le 2026-08-04 : Café de Flore, Méert,",
+    "La Chicorée, Le Cirio, Monmouth Coffee, Winkel 43, Café de Jaren, Dishoom.",
+    "Ce sont de vraies adresses, mais c'est le circuit des guides — file",
+    "d'attente de touristes ou clientèle d'une autre génération. Remplacées par",
+    "des lieux à clientèle jeune : torréfacteurs de specialty coffee, bars à",
+    "cocktails de quartier, caves à vin naturel.",
+    "",
+    "Chaque adresse a été vérifiée : existence, quartier, activité en 2026.",
+    "Les @ ont été relevés dans le pied de page du site officiel, pas devinés.",
+    "",
+    "ATTENTION — une adresse branchée ferme beaucoup plus vite qu'une",
+    "institution. C'est le prix de cette sélection. Repasse 'verified' à false",
+    "dès qu'un lieu ferme : la légende parlera alors du quartier seul, sans",
+    "jamais citer le nom.",
+    "",
+    "handle : @ officiel. Vide = aucun compte confirmé, le lieu n'est pas tagué.",
+    "kind   : cafe | bar | restaurant | bookshop",
+    "vibe   : décor et ambiance — sert au prompt de génération d'image",
+    "order  : ce qu'Ava commande, pour varier photos et légendes",
+    "area   : le quartier, seule information publiée si verified = false"
+  ],
+  "places": [
+    {
+      "name": "Holybelly 5",
+      "city": "Paris",
+      "area": "Canal Saint-Martin",
+      "kind": "cafe",
+      "handle": "@holybellycafe",
+      "verified": true,
+      "vibe": "Melbourne-style coffee shop, blond wood, open kitchen, queue out the door on weekends",
+      "order": [
+        "un flat white",
+        "des pancakes"
+      ]
+    },
+    {
+      "name": "Ten Belles",
+      "city": "Paris",
+      "area": "Canal Saint-Martin",
+      "kind": "cafe",
+      "handle": "",
+      "verified": true,
+      "vibe": "tiny specialty coffee roastery and bakery, tiled counter, people working on laptops",
+      "order": [
+        "un filtre",
+        "une brioche"
+      ]
+    },
+    {
+      "name": "Café Oberkampf",
+      "city": "Paris",
+      "area": "Oberkampf",
+      "kind": "cafe",
+      "handle": "",
+      "verified": true,
+      "vibe": "twelve seats at most, immaculate white walls, wooden pedestal tables, Scandinavian minimalism",
+      "order": [
+        "un cappuccino",
+        "des œufs au shakshuka"
+      ]
+    },
+    {
+      "name": "Combat",
+      "city": "Paris",
+      "area": "Belleville",
+      "kind": "bar",
+      "handle": "@combat.belleville",
+      "verified": true,
+      "vibe": "neighbourhood cocktail bar run by women, warm low light, no dress code, crowd spilling onto the pavement",
+      "order": [
+        "un cocktail de la carte du jour"
+      ]
+    },
+    {
+      "name": "Folderol",
+      "city": "Paris",
+      "area": "République, 11e",
+      "kind": "bar",
+      "handle": "",
+      "verified": true,
+      "vibe": "natural wine bar and ice cream counter in one small room, people standing outside with a glass and a cone",
+      "order": [
+        "un verre de vin nature",
+        "une boule de glace à l'huile d'olive"
+      ]
+    },
+    {
+      "name": "Coffee Makers",
+      "city": "Lille",
+      "area": "Rue de Paris, Lille-Centre",
+      "kind": "cafe",
+      "handle": "@coffeemakerslille",
+      "verified": true,
+      "vibe": "specialty coffee roaster since 2013, espresso bar, students working at shared tables",
+      "order": [
+        "un cortado",
+        "un brunch du samedi"
+      ]
+    },
+    {
+      "name": "La Capsule",
+      "city": "Lille",
+      "area": "Vieux-Lille",
+      "kind": "bar",
+      "handle": "@lacapsulelille",
+      "verified": true,
+      "vibe": "craft beer bar, 28 taps, blackboard menus, brick walls, loud and full on Friday nights",
+      "order": [
+        "une bière artisanale à la pression"
+      ]
+    },
+    {
+      "name": "Ozone Coffee Roasters",
+      "city": "Londres",
+      "area": "Shoreditch",
+      "kind": "cafe",
+      "handle": "@ozonecoffeeuk",
+      "verified": true,
+      "vibe": "roastery in a converted warehouse, exposed steel, roasting drum visible, all-day brunch crowd",
+      "order": [
+        "un filtre",
+        "un brunch"
+      ]
+    },
+    {
+      "name": "Satan's Whiskers",
+      "city": "Londres",
+      "area": "Bethnal Green",
+      "kind": "bar",
+      "handle": "",
+      "verified": true,
+      "vibe": "no bookings, no website, taxidermy on the walls, hip-hop on the speakers, menu rewritten every day",
+      "order": [
+        "un cocktail classique"
+      ]
+    },
+    {
+      "name": "Bar du Matin",
+      "city": "Bruxelles",
+      "area": "Forest",
+      "kind": "bar",
+      "handle": "@bardumatin",
+      "verified": true,
+      "vibe": "neighbourhood café by day, DJ sets by night, big terrace, mismatched furniture",
+      "order": [
+        "un cocktail maison",
+        "un café en terrasse"
+      ]
+    },
+    {
+      "name": "Café Belga",
+      "city": "Bruxelles",
+      "area": "Place Flagey, Ixelles",
+      "kind": "bar",
+      "handle": "@cafebelga",
+      "verified": true,
+      "vibe": "1930s art deco corner of a former radio building, huge terrace on the square, students and thirty-somethings",
+      "order": [
+        "une blonde belge",
+        "un espresso"
+      ]
+    },
+    {
+      "name": "Normo Coffee",
+      "city": "Anvers",
+      "area": "Minderbroedersrui",
+      "kind": "cafe",
+      "handle": "@normocoffee",
+      "verified": true,
+      "vibe": "industrial specialty coffee bar, concrete and steel, students on laptops, unpretentious",
+      "order": [
+        "un cappuccino",
+        "un filtre"
+      ]
+    },
+    {
+      "name": "Caffènation",
+      "city": "Anvers",
+      "area": "Berchem, site PAKT",
+      "kind": "cafe",
+      "handle": "@caffenation_coffee",
+      "verified": true,
+      "vibe": "roastery in a converted warehouse courtyard, roasters at work behind glass",
+      "order": [
+        "un cortado"
+      ]
+    },
+    {
+      "name": "Scandinavian Embassy",
+      "city": "Amsterdam",
+      "area": "De Pijp, Sarphatipark",
+      "kind": "cafe",
+      "handle": "@scandinavianembassy",
+      "verified": true,
+      "vibe": "small Nordic room facing the park, pale wood, six tables, coffee paired with food",
+      "order": [
+        "un filtre nordique",
+        "du pain aux graines et saumon"
+      ]
+    },
+    {
+      "name": "Bar Botanique",
+      "city": "Amsterdam",
+      "area": "Amsterdam Oost, Javastraat",
+      "kind": "bar",
+      "handle": "@barbotaniqueamsterdam",
+      "verified": true,
+      "vibe": "tropical green interior, plants covering the ceiling, pink light, loud and young",
+      "order": [
+        "un cocktail",
+        "un café le matin"
+      ]
+    }
+  ],
+  "travel": [
+    {
+      "destination": "Toscane",
+      "detail": "Cypress roads, a hilltop village at the end of the afternoon.",
+      "tips": [
+        "Loger à Pienza plutôt qu'à Sienne : moitié prix, dix fois plus calme le soir.",
+        "La lumière sur les collines est bonne 40 minutes avant le coucher, pas au coucher.",
+        "Louer une voiture : les villages qui valent le détour n'ont pas de gare."
+      ]
+    },
+    {
+      "destination": "Paris",
+      "detail": "Rooftops in the rain, wet cobblestones, a bookshop window.",
+      "tips": [
+        "Les librairies du 5e ouvrent tard le samedi — c'est le meilleur moment.",
+        "Un café en terrasse coûte le double assis, moitié moins au comptoir.",
+        "Les quais côté rive gauche sont vides avant 9h, même en été."
+      ]
+    },
+    {
+      "destination": "Kyoto",
+      "detail": "A stone alley at dawn, wooden facades, almost no one.",
+      "tips": [
+        "Les temples ouvrent à 6h : la première heure est la seule sans foule.",
+        "Prendre le bus, pas le métro — le réseau est bien plus dense.",
+        "Réserver les ryokan 3 mois à l'avance pour l'automne."
+      ]
+    },
+    {
+      "destination": "Amsterdam",
+      "detail": "Canals at blue hour, bicycles, lit windows.",
+      "tips": [
+        "Louer un vélo dès la sortie de la gare, tout le reste est une perte de temps.",
+        "Les musées sont vides le jeudi soir — beaucoup ouvrent jusqu'à 22h.",
+        "Oost plutôt que le centre : la Javastraat a tout, sans la foule."
+      ]
+    },
+    {
+      "destination": "Bali",
+      "detail": "Rice terraces in the early morning mist, a scooter on an empty road.",
+      "tips": [
+        "Ubud le matin, la côte l'après-midi : l'inverse et tu passes la journée dans les bouchons.",
+        "Les rizières de Jatiluwih plutôt que Tegallalang : mêmes paysages, sans les files d'attente.",
+        "Compter une heure pour 20 km. Toujours."
+      ]
+    },
+    {
+      "destination": "New York",
+      "detail": "Steam rising from the street, brownstone stoops, low winter light between towers.",
+      "tips": [
+        "Les musées ont tous un créneau à prix libre — vérifier avant de payer plein tarif.",
+        "Brooklyn Bridge à pied vers Manhattan, jamais l'inverse : la vue est derrière toi sinon.",
+        "Le métro est plus rapide que le taxi à toute heure de la journée."
+      ]
+    }
+  ]
+}
